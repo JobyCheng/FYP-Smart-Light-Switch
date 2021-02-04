@@ -1,1 +1,1 @@
-# FYP-Smart-Switch
+# FYP-Smart-Light-Switch
