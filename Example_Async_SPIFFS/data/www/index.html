@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Page Title</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="stylesheet" href="style.css">
+<script src="script.js"></script>
+
+
+</head>
+<body>
+
+<div class="header">
+  <h1>Example</h1>
+</div>
+
+<div class="navbar">
+  <a href="#" class="active">Home</a>
+  <a href="#">Link</a>
+  <a href="#">Link</a>
+  <a href="#" class="right">Link</a>
+</div>
+
+<div class="row">
+  <div class="side">
+    <h2>SideBar</h2>
+    <!--
+      Post example
+      Using JS to handle submit
+      "return false" to prevent page reload
+    -->
+    <form onsubmit="sendText();return false;">
+      <label for="fname">First name:</label><br>
+      <input type="text" id="fname" name="fname"><br>
+      <label for="lname">Last name:</label><br>
+      <input type="text" id="lname" name="lname">
+      <input type="submit" value="Submit">
+    </form>
+  </div>
+    <!--
+      Get example
+    -->
+  <div class="main">
+    <button onclick=scan()>Scan Wifi network</button>
+    <div id="result">
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <h2>Footer</h2>
+</div>
+
+</body>
+</html>
