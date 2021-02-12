@@ -71,6 +71,6 @@
 
 /* Page content */
 .tabcontent {
-  display: none;
   padding: 16px;
+  padding-top: 16px;
 }

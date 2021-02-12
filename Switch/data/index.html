@@ -14,9 +14,9 @@
     </div>
 
     <div id="navbar" class="navbar" >
-        <a href="#home" id="home-tab" class="tab">Home</a>
-        <a href="#wifi" id="wifi-tab" class="tab">Wifi</a>
-        <a href="#access_point" id="access_point-tab" class="tab">Access Point</a>
+        <a href="#home" id="home" class="tab">Home</a>
+        <a href="#wifi" id="wifi" class="tab" onclick="loadTab('wifi')">Wifi</a>
+        <a href="#access_point" id="access_point" class="tab">Access Point</a>
         <a href="javascript:void(0);" class="icon" onclick="ResponsiveNav()">
             <div></div>
             <div></div>
@@ -24,27 +24,9 @@
         </a>
     </div>
 
-    <div id="home" class="tabContent">
-        <!--put code under this div-->
-        home
-        <!--put code above this div-->
+    <div id="tabContent" class="tabContent">
+        <!--load from other page-->
+        Loading
     </div>
 
-    <div id="wifi" class="tabContent">
-        <!--put code under this div-->
-        wifi
-        <!--put code above this div-->
-    </div>
-
-    <div id="access_point" class="tabContent">
-        <!--put code under this div--> 
-        <div id ="AP_respond"></div><br>
-        <!--The submit will done by JS--> 
-        <form id="AP_passwd_form">
-            <label for="passwd">New Password: (at least 8 digit)</label><br>
-            <input type="text" name="passwd"><br><br>
-            <input type="submit" value="Submit">
-        </form>
-        <!--put code above this div-->
-    </div>
 </body>
