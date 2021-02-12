@@ -82,20 +82,23 @@ void setup() {
      Serial.println("Fail to start DNS");
   }
 
-  // mDNS
-  if(MDNS.begin(DEVICE_NAME.c_str())) {
-     Serial.println("mDNS Started");
-  }else{
-     Serial.println("Fail to start mDNS");
-  }
-
   // Wifi client
   String SSID = preferences.getString("SSID", "");
   String PASSWD = preferences.getString("PASSWD", "");
-  Serial.println(SSID.c_str());
   if(!(SSID == "")){
     Serial.println("Wifi setting found!");
     WiFi.begin(SSID.c_str(), PASSWD.c_str());
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(1000);
+      Serial.println("Connecting to WiFi..");
+    }
+    // mDNS
+    if(MDNS.begin(DEVICE_NAME.c_str())) {
+      Serial.println("mDNS Started at \thttp://"+DEVICE_NAME+".local");
+    }else{
+      Serial.println("Fail to start mDNS");
+    }
+    Serial.println(WiFi.localIP());
   }
 
   preferences.end();
@@ -126,14 +129,67 @@ void setup() {
 
   */
   web_server.on("/reset",HTTP_GET,[](AsyncWebServerRequest *request){
-    Serial.println("recive Reset request");
+    Serial.println("");
+    Serial.println("reset");
     request->send(200, "text/plain", "Server recived");
     setDefault();
    });
 
+  web_server.on("/wifiStauts",HTTP_GET,[](AsyncWebServerRequest *request){
+    auto status = WiFi.status();
+    Serial.println("");
+    Serial.println("wifiStauts");
+    String message;
+    switch (status){
+      case WL_CONNECTED:
+        message = "Connected";
+        break;
+      case WL_IDLE_STATUS:
+        message = "Connecting...";
+        break;
+      case WL_CONNECT_FAILED:
+        message = "Fail to connect";
+        break;
+      case WL_CONNECTION_LOST:
+        message = "Disconnected";
+        break;
+      case WL_DISCONNECTED:
+        message = "Disconnected";
+        break;
+      case WL_NO_SHIELD:
+        message = "No setting stored";
+        break;
+      default:
+        message = "Others";
+        break;
+      }
+      Serial.println(message);
+      Serial.println(status);
+
+    request->send(200, "text/plain", message);
+   });
+
+  web_server.on("/SSIDlist", HTTP_GET, [](AsyncWebServerRequest *request){
+    Serial.println("");
+    Serial.println("SSID");
+    String json = "[";
+    int n = WiFi.scanNetworks(); //Not in Async mode
+    if(n >= 0){
+      for (int i = 0; i < n; ++i){
+        if(i) json += ",";
+        json += "{";
+        json += "\"ssid\":\""+WiFi.SSID(i)+"\"";
+        json += "}";
+      }
+      WiFi.scanDelete();
+    }
+    json += "]";
+    request->send(200, "application/json", json);
+  });
+
   web_server.on("/AP_passwd",HTTP_POST,[](AsyncWebServerRequest *request){
-    Serial.println("recive POST request");
-    request->send(200, "text/plain", "Restart for the changes to take effect");
+    Serial.println("");
+    Serial.println("Set Access Point password");
     if(request->hasParam("passwd", true)){
       String passwd = request->getParam("passwd", true)->value();
       Serial.println(passwd);
@@ -141,8 +197,34 @@ void setup() {
         preferences.putString("DEVICE_PASSWD",passwd);
         preferences.end();
     }
+    request->send(200, "text/plain", "Restart for the changes to take effect");
    });
 
+  web_server.on("/wifi_setting",HTTP_POST,[](AsyncWebServerRequest *request){
+    Serial.println("");
+    Serial.println("Change wifi setting");
+
+    if(!(request->hasParam("SSID", true))){request->send(200, "text/plain", "Missing data: SSID");}
+    if(!(request->hasParam("hidden_SSID", true))){request->send(200, "text/plain", "Missing data: hidden_SSID");}
+    if(!(request->hasParam("passwd", true))){request->send(200, "text/plain", "Missing data: password");}
+    String SSID = request->getParam("SSID", true)->value();
+    String hidden_SSID = request->getParam("hidden_SSID", true)->value();
+    String passwd = request->getParam("passwd", true)->value();
+
+    request->send(200, "text/plain", "Restart for the changes to take effect");
+    
+    Serial.println("SSID:\t"+SSID+"\nhidden_SSID:\t"+hidden_SSID+"\npasswd:\t"+passwd);
+
+    if (SSID == "hidden"){
+      Serial.println("Hidden SSID");
+      SSID=hidden_SSID;
+      }
+    
+    preferences.begin("setting");
+    preferences.putString("SSID", SSID);
+    preferences.putString("PASSWD", passwd);
+    preferences.end();
+   });
 
 
   web_server.begin();

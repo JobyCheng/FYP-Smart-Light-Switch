@@ -3,7 +3,6 @@
         <title>Smart Switch</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-
         <link rel="stylesheet" href="style.css">
         <script src="jquery-3.5.1.min.js"></script>
         <script src="script.js"></script>
@@ -15,7 +14,7 @@
 
     <div id="navbar" class="navbar" >
         <a href="#home" id="home" class="tab">Home</a>
-        <a href="#wifi" id="wifi" class="tab" onclick="loadTab('wifi')">Wifi</a>
+        <a href="#wifi" id="wifi" class="tab">Wifi</a>
         <a href="#access_point" id="access_point" class="tab">Access Point</a>
         <a href="javascript:void(0);" class="icon" onclick="ResponsiveNav()">
             <div></div>
@@ -24,9 +23,71 @@
         </a>
     </div>
 
-    <div id="tabContent" class="tabContent">
-        <!--load from other page-->
-        Loading
+    <div id="home-content" class="content">
+    <!--put code under this div-->
+        home
+    <!--put code above this div-->
+    </div>
+
+    <div id="wifi-content" class="content">
+    <!--put code under this div-->
+    <div>
+        <a> Current Wifi Status: </a>
+        <a id="wifiStatus"></a>
+        <br>
+        <button onclick="updateWifiStauts()">Update status</button>
+    </div><br>
+    <div>
+        <a> Wifi Setting</a>
+        <br>
+        <button onclick="updateSSIDlist()">Update list</button>
+        <br>
+        <br>
+        <form id="Wifi_form">
+            <label for="SSID">SSID:</label>
+            <br>
+            <select name="SSID" id="SSID">
+
+            </select>
+            <input type="text" name="hidden_SSID" id="hidden_input" style="display: none;"></input>
+            <br>
+            <label for="Password">Password:</label>
+            <br>
+            <input type="password" name="passwd">
+            <br>
+            <br>
+            <input type="submit" value="Submit">
+        </form>
+        <div id ="Wifi_respond"></div>
+    </div>
+    <!--put code above this div-->
+    </div>
+
+    <div id="access_point-content" class="content">
+    <!--put code under this div-->
+        <form id="AP_passwd_form">
+            <label for="passwd">New Password: (at least 8 digit)</label>
+            <br>
+            <input type="password" name='passwd'>
+            <br>
+            <br>
+            <label for="confirm">Enter the password again</label>
+            <br>
+            <input type="password" name="confirm">
+            <br>
+            <br>
+            <input type="submit" value="Submit">
+        </form>
+        <br>
+        <div id ="AP_respond"></div>
+    <!--put code above this div-->
+    </div>
+
+    <div id="template-content" class="content">
+    <!--put code under this div-->
+    template
+    <!--put code above this div-->
     </div>
 
 </body>
+</html>

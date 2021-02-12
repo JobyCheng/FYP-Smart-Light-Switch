@@ -70,7 +70,7 @@
 }
 
 /* Page content */
-.tabcontent {
+.content {
+  display: none;
   padding: 16px;
-  padding-top: 16px;
 }
