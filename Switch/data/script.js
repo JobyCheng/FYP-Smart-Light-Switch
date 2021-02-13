@@ -35,7 +35,7 @@ function updateSSIDlist(){
       for (item of data){
         content += "<option value='"+item.ssid+"'>"+item.ssid+"</option>";
       }
-      content += "<optgroup label='---------'><option value='hidden'>Hidden</option>"
+      content += "<optgroup label='---------'><option value='hidden'>Hidden Network</option>"
       $("#SSID").html(content);
       ssidlock = false;
 	});
@@ -53,6 +53,8 @@ $(function () {
   } else {
     openTab();
   }
+  updateWifiStauts();
+  updateSSIDlist();
 
   // Replace the original post function
   $('#AP_passwd_form').on('submit', function (e) {

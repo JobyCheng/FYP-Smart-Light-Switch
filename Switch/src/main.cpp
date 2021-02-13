@@ -16,21 +16,6 @@ const uint16_t DNS_PORT = 53;
 AsyncWebServer web_server(80);
 DNSServer dns_server;
 Preferences preferences;
- String keyList[]={
-  "DEVICE_PASSWD",
-  "SSID",
-  "PASSWD"
-};
-
-
-void wifi_check(){
-  if(WiFi.status() == WL_CONNECTED){
-    Serial.println("");
-    Serial.println("WiFi connected.");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-  }
-}
 
 void setDefault(){
   Serial.println("Clear all setting");
@@ -51,7 +36,6 @@ void setDefault(){
 void setup() {
   Serial.begin(115200);
   // put your setup code here, to run once:
-
   preferences.begin("setting");
   /*
   ███╗   ██╗███████╗████████╗██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗
@@ -63,42 +47,50 @@ void setup() {
 
   */
   // Access Point
-  Serial.println("Setting AP (Access Point)…");
-
   String DEVICE_NAME = "esp32";
   String DEVICE_PASSWD = preferences.getString("DEVICE_PASSWD", "12345678");
-  Serial.print("The current password is ");
-  Serial.println(DEVICE_PASSWD.c_str());
 
-  WiFi.softAP(DEVICE_NAME.c_str(),DEVICE_PASSWD.c_str());
-  IPAddress IP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(IP);
+  IPAddress AP_IP = IPAddress();
+  if (WiFi.softAP(DEVICE_NAME.c_str(),DEVICE_PASSWD.c_str())){
+    Serial.println("WiFi_AP:\tOK");
+    AP_IP = WiFi.softAPIP();
+    Serial.println("Name:\t\t"+DEVICE_NAME);
+    Serial.println("Password:\t"+DEVICE_PASSWD);
+    Serial.print("AP address:\t");
+    Serial.println(AP_IP);
+  }else{
+    Serial.println("WiFi_AP:\tFail");
+  }
 
   // DNS
-  if(dns_server.start(DNS_PORT, "*", IP)){
-     Serial.println("DNS Started");
+  if(dns_server.start(DNS_PORT, "*", AP_IP)){
+     Serial.println("DNS:\t\tOK");
   }else{
-     Serial.println("Fail to start DNS");
+     Serial.println("DNS:\t\tFail");
+  }
+
+  // mDNS
+  if(MDNS.begin(DEVICE_NAME.c_str())) {
+    Serial.println("mDNS:\t\tOK");
+    MDNS.addService("http", "tcp", 80);
+    Serial.println("address:\thttp://"+DEVICE_NAME+".local");
+  }else{
+    Serial.println("mDNS:\t\tFail");
   }
 
   // Wifi client
   String SSID = preferences.getString("SSID", "");
   String PASSWD = preferences.getString("PASSWD", "");
   if(!(SSID == "")){
-    Serial.println("Wifi setting found!");
+    Serial.println("Wifi Conf:\tTrue");
     WiFi.begin(SSID.c_str(), PASSWD.c_str());
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(1000);
-      Serial.println("Connecting to WiFi..");
-    }
-    // mDNS
-    if(MDNS.begin(DEVICE_NAME.c_str())) {
-      Serial.println("mDNS Started at \thttp://"+DEVICE_NAME+".local");
+    if(WiFi.waitForConnectResult()==WL_CONNECTED){
+      Serial.println("WiFi:\t\tOK");
+      Serial.print("WiFi IP:\t");
+      Serial.println(WiFi.localIP());
     }else{
-      Serial.println("Fail to start mDNS");
+      Serial.println("WiFi:\t\tFail");
     }
-    Serial.println(WiFi.localIP());
   }
 
   preferences.end();
@@ -172,17 +164,15 @@ void setup() {
   web_server.on("/SSIDlist", HTTP_GET, [](AsyncWebServerRequest *request){
     Serial.println("");
     Serial.println("SSID");
-    String json = "[";
     int n = WiFi.scanNetworks(); //Not in Async mode
-    if(n >= 0){
-      for (int i = 0; i < n; ++i){
-        if(i) json += ",";
-        json += "{";
-        json += "\"ssid\":\""+WiFi.SSID(i)+"\"";
-        json += "}";
-      }
-      WiFi.scanDelete();
+    String json = "[";
+    for (int i = 0; i < n; ++i){
+      if(i) {json += ",";};
+      json += "{";
+      json += "\"ssid\":\""+WiFi.SSID(i)+"\"";
+      json += "}";
     }
+    WiFi.scanDelete();
     json += "]";
     request->send(200, "application/json", json);
   });
@@ -216,7 +206,7 @@ void setup() {
     Serial.println("SSID:\t"+SSID+"\nhidden_SSID:\t"+hidden_SSID+"\npasswd:\t"+passwd);
 
     if (SSID == "hidden"){
-      Serial.println("Hidden SSID");
+      Serial.println("hidden SSID");
       SSID=hidden_SSID;
       }
     
