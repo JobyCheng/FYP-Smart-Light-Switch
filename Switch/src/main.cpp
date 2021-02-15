@@ -1,6 +1,8 @@
 #include <Arduino.h>
 
 #include <Preferences.h>
+#include <HTTPClient.h>
+
 // Library for Network
 #include <WiFi.h>
 #include <ESPmDNS.h>
@@ -16,6 +18,11 @@ const uint16_t DNS_PORT = 53;
 AsyncWebServer web_server(80);
 DNSServer dns_server;
 Preferences preferences;
+
+enum ROLE{
+  SERVER,
+  CLIENT
+} role;
 
 void setDefault(){
   Serial.println("Clear all setting");
@@ -36,7 +43,24 @@ void setDefault(){
 void setup() {
   Serial.begin(115200);
   // put your setup code here, to run once:
+
+  // Get all the Needed varible;
   preferences.begin("setting");
+  String SSID = preferences.getString("SSID", "");
+  String PASSWD = preferences.getString("PASSWD", "");
+
+  String AP_PASSWD = preferences.getString("DEVICE_PASSWD", "12345678");
+  preferences.end();
+
+  // product name
+  // will be used in name of access point, domain name of site
+  String PRODUCT_NAME = "esp32";
+
+  // create a id w/ MAC address.
+  Serial.print("Mac address:\t");
+  String DEVICE_ID = String((unsigned long) ESP.getEfuseMac(),16);
+  Serial.println(DEVICE_ID);
+
   /*
   ███╗   ██╗███████╗████████╗██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗
   ████╗  ██║██╔════╝╚══██╔══╝██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝
@@ -46,55 +70,67 @@ void setup() {
   ╚═╝  ╚═══╝╚══════╝   ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
 
   */
-  // Access Point
-  String DEVICE_NAME = "esp32";
-  String DEVICE_PASSWD = preferences.getString("DEVICE_PASSWD", "12345678");
+  // Wifi client
 
-  IPAddress AP_IP = IPAddress();
-  if (WiFi.softAP(DEVICE_NAME.c_str(),DEVICE_PASSWD.c_str())){
-    Serial.println("WiFi_AP:\tOK");
-    AP_IP = WiFi.softAPIP();
-    Serial.println("Name:\t\t"+DEVICE_NAME);
-    Serial.println("Password:\t"+DEVICE_PASSWD);
-    Serial.print("AP address:\t");
-    Serial.println(AP_IP);
-  }else{
-    Serial.println("WiFi_AP:\tFail");
+  if(!(SSID == "")){
+    Serial.println("Wifi Conf:\tTrue");
+    WiFi.begin(SSID.c_str(), PASSWD.c_str());
+  }
+  // Default as server, change to client if it detect a server.
+  role = SERVER;
+
+  if(WiFi.waitForConnectResult()==WL_CONNECTED){
+      Serial.println("WiFi:\t\tOK");
+      Serial.print("WiFi IP:\t");
+      Serial.println(WiFi.localIP());
+
+      // Check if there is any server in the LAN
+      HTTPClient http;
+      http.begin(PRODUCT_NAME+".local/NewDevice");
+      http.addHeader("Content-Type", "application/json");
+      // sending the id to server
+      String data = "[{id:"+DEVICE_ID+"}]";
+      int httpResponseCode = http.POST(data);
+      Serial.print("Server Response:\t");
+      Serial.println(httpResponseCode);
+      if (httpResponseCode == 200){role = CLIENT;}
+    }else{
+      Serial.println("WiFi:\t\tFail");
   }
 
-  // DNS
-  if(dns_server.start(DNS_PORT, "*", AP_IP)){
-     Serial.println("DNS:\t\tOK");
-  }else{
-     Serial.println("DNS:\t\tFail");
-  }
+  Serial.print("Role:\t");
+  Serial.println((role == CLIENT)? "Client" : "Server");
 
   // mDNS
-  if(MDNS.begin(DEVICE_NAME.c_str())) {
+  String domain_name = (role == CLIENT)? DEVICE_ID : PRODUCT_NAME;
+  if(MDNS.begin(domain_name.c_str())) {
     Serial.println("mDNS:\t\tOK");
     MDNS.addService("http", "tcp", 80);
-    Serial.println("address:\thttp://"+DEVICE_NAME+".local");
+    Serial.println("address:\thttp://" + domain_name + ".local/");
   }else{
     Serial.println("mDNS:\t\tFail");
   }
 
-  // Wifi client
-  String SSID = preferences.getString("SSID", "");
-  String PASSWD = preferences.getString("PASSWD", "");
-  if(!(SSID == "")){
-    Serial.println("Wifi Conf:\tTrue");
-    WiFi.begin(SSID.c_str(), PASSWD.c_str());
-    if(WiFi.waitForConnectResult()==WL_CONNECTED){
-      Serial.println("WiFi:\t\tOK");
-      Serial.print("WiFi IP:\t");
-      Serial.println(WiFi.localIP());
+  if(role == SERVER){
+    IPAddress AP_IP = IPAddress();
+    if (WiFi.softAP(PRODUCT_NAME.c_str(),AP_PASSWD.c_str())){
+      Serial.println("WiFi_AP:\tOK");
+      AP_IP = WiFi.softAPIP();
+      Serial.println("Name:\t\t"+PRODUCT_NAME);
+      Serial.println("Password:\t"+AP_PASSWD);
+      Serial.print("AP address:\t");
+      Serial.println(AP_IP);
     }else{
-      Serial.println("WiFi:\t\tFail");
+      Serial.println("WiFi_AP:\tFail");
+    }
+
+    // DNS
+    if(dns_server.start(DNS_PORT, "*", AP_IP)){
+      Serial.println("DNS:\t\tOK");
+    }else{
+      Serial.println("DNS:\t\tFail");
     }
   }
-
-  preferences.end();
-  
   /*
   ██╗    ██╗███████╗██████╗ ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗
   ██║    ██║██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗
@@ -121,16 +157,20 @@ void setup() {
 
   */
   web_server.on("/reset",HTTP_GET,[](AsyncWebServerRequest *request){
-    Serial.println("");
-    Serial.println("reset");
+    Serial.println("\nreset");
+    request->send(200, "text/plain", "Server recived");
+    setDefault();
+   });
+
+  web_server.on("/NewDevice",HTTP_GET,[](AsyncWebServerRequest *request){
+    Serial.println("\nNewDevice");
     request->send(200, "text/plain", "Server recived");
     setDefault();
    });
 
   web_server.on("/wifiStauts",HTTP_GET,[](AsyncWebServerRequest *request){
     auto status = WiFi.status();
-    Serial.println("");
-    Serial.println("wifiStauts");
+    Serial.println("\nwifiStauts");
     String message;
     switch (status){
       case WL_CONNECTED:
@@ -155,15 +195,14 @@ void setup() {
         message = "Others";
         break;
       }
-      Serial.println(message);
       Serial.println(status);
+      Serial.println(message);
 
     request->send(200, "text/plain", message);
    });
 
   web_server.on("/SSIDlist", HTTP_GET, [](AsyncWebServerRequest *request){
-    Serial.println("");
-    Serial.println("SSID");
+    Serial.println("\nSSID");
     int n = WiFi.scanNetworks(); //Not in Async mode
     String json = "[";
     for (int i = 0; i < n; ++i){
@@ -172,14 +211,13 @@ void setup() {
       json += "\"ssid\":\""+WiFi.SSID(i)+"\"";
       json += "}";
     }
-    WiFi.scanDelete();
     json += "]";
     request->send(200, "application/json", json);
+    WiFi.scanDelete();
   });
 
   web_server.on("/AP_passwd",HTTP_POST,[](AsyncWebServerRequest *request){
-    Serial.println("");
-    Serial.println("Set Access Point password");
+    Serial.println("\nSet Access Point password");
     if(request->hasParam("passwd", true)){
       String passwd = request->getParam("passwd", true)->value();
       Serial.println(passwd);
@@ -191,8 +229,7 @@ void setup() {
    });
 
   web_server.on("/wifi_setting",HTTP_POST,[](AsyncWebServerRequest *request){
-    Serial.println("");
-    Serial.println("Change wifi setting");
+    Serial.println("\nChange wifi setting");
 
     if(!(request->hasParam("SSID", true))){request->send(200, "text/plain", "Missing data: SSID");}
     if(!(request->hasParam("hidden_SSID", true))){request->send(200, "text/plain", "Missing data: hidden_SSID");}
@@ -208,7 +245,7 @@ void setup() {
     if (SSID == "hidden"){
       Serial.println("hidden SSID");
       SSID=hidden_SSID;
-      }
+    }
     
     preferences.begin("setting");
     preferences.putString("SSID", SSID);
