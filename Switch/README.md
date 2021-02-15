@@ -44,5 +44,8 @@ Function that need to be a request:
 
 
 
+---
+## AP Sleep
+Currently ESP32 AP doesn’t support all of the power save feature defined in Wi-Fi specification. To be specific, the AP only caches unicast data for the stations connect to this AP, but doesn’t cache the multicast data for the stations. If stations connected to the ESP32 AP are power save enabled, they may experience multicast packet loss.
 
-
+https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html?highlight=power%20saving

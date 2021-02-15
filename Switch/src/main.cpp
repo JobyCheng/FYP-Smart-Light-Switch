@@ -5,6 +5,7 @@
 
 // Library for Network
 #include <WiFi.h>
+#include "esp_wifi.h"
 #include <ESPmDNS.h>
 #include <DNSServer.h>
 // Library for Webserver
@@ -131,6 +132,11 @@ void setup() {
       Serial.println("DNS:\t\tFail");
     }
   }
+  
+  // Power Saving Option
+  // lower wifi client power usage
+  esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+
   /*
   ██╗    ██╗███████╗██████╗ ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗
   ██║    ██║██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗
@@ -144,7 +150,7 @@ void setup() {
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
   }
-
+  
   web_server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
 
   /*
@@ -157,10 +163,16 @@ void setup() {
 
   */
   web_server.on("/reset",HTTP_GET,[](AsyncWebServerRequest *request){
-    Serial.println("\nreset");
+    Serial.println("\nReset");
     request->send(200, "text/plain", "Server recived");
     setDefault();
    });
+
+   web_server.on("/restart",HTTP_GET,[](AsyncWebServerRequest *request){
+    Serial.println("\nRestart");
+    request->send(200, "text/plain", "Server recived");
+    ESP.restart();
+  });
 
   web_server.on("/NewDevice",HTTP_GET,[](AsyncWebServerRequest *request){
     Serial.println("\nNewDevice");
