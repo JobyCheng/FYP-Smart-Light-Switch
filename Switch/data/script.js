@@ -41,6 +41,36 @@ function updateSSIDlist(){
 	});
 }
 
+function addClient(data){
+  for (item of data){
+  $("#switchList").append('\
+    <tr>\
+    <td>'+item.identifier+'</td>\
+    <td>\
+      <label class="switch">\
+        <input type="checkbox" id='+item.id+'>\
+        <span class="slider round"></span>\
+      </label>\
+    </td>\
+    </tr>\
+    ');
+
+    var target = $("#"+item.id)
+    target.prop("checked",item.status)
+
+    target.change(function(){
+      //console.log(target.prop("checked"))
+      $.get("http://"+target.prop("id")+".local/"+(target.prop("checked")?"on":"off"))
+    });
+  }
+}
+
+function getClientList(){
+  $.get("/getClient",function(data,status){
+    //console.log(data);
+    addClient(data);
+  });
+}
 
 window.onhashchange = openTab;
 
@@ -53,6 +83,7 @@ $(function () {
   } else {
     openTab();
   }
+  getClientList();
   updateWifiStauts();
   updateSSIDlist();
 

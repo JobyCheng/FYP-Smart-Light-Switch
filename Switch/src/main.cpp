@@ -20,16 +20,33 @@ AsyncWebServer web_server(80);
 DNSServer dns_server;
 Preferences preferences;
 
+bool isDNSup = false;
+
 enum ROLE{
   SERVER,
   CLIENT
 } role;
+
+struct clientList
+{
+  String id;
+  String identifier;
+  bool status;
+};
+const int LIST_SIZE = 16;
+clientList CList [LIST_SIZE]; // resize if needed
+int CListptr = 0;
 
 void setDefault(){
   Serial.println("Clear all setting");
   preferences.begin("setting");
   preferences.clear();
   preferences.end();
+}
+
+void addClient(String id, String identifier = "", bool status = false){
+  if (CListptr>=LIST_SIZE){Serial.println("\nMax. No. of client has reached");return;};
+  CList[CListptr++] = {id,identifier,status};
 }
 
 /*
@@ -62,6 +79,10 @@ void setup() {
   String DEVICE_ID = String((unsigned long) ESP.getEfuseMac(),16);
   Serial.println(DEVICE_ID);
 
+  // add itself to the client list
+  // id is also the url for connection, so use product_name as the server id
+  addClient(PRODUCT_NAME,"main", false);
+
   /*
   ███╗   ██╗███████╗████████╗██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗
   ████╗  ██║██╔════╝╚══██╔══╝██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝
@@ -71,10 +92,10 @@ void setup() {
   ╚═╝  ╚═══╝╚══════╝   ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
 
   */
-  // Wifi client
+  // Wifi
 
   if(!(SSID == "")){
-    Serial.println("Wifi Conf:\tTrue");
+    Serial.println("Wifi Conf Found");
     WiFi.begin(SSID.c_str(), PASSWD.c_str());
   }
   // Default as server, change to client if it detect a server.
@@ -82,7 +103,7 @@ void setup() {
 
   if(WiFi.waitForConnectResult()==WL_CONNECTED){
       Serial.println("WiFi:\t\tOK");
-      Serial.print("WiFi IP:\t");
+      Serial.print("IP address:\t");
       Serial.println(WiFi.localIP());
 
       // Check if there is any server in the LAN
@@ -92,33 +113,41 @@ void setup() {
       // sending the id to server
       String data = "[{id:"+DEVICE_ID+"}]";
       int httpResponseCode = http.POST(data);
+
       Serial.print("Server Response:\t");
       Serial.println(httpResponseCode);
-      if (httpResponseCode == 200){role = CLIENT;}
+      if (httpResponseCode == 200){
+        role = CLIENT;
+      }
+
+      // Power Saving Option
+      // lower wifi client power usage
+      esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+
     }else{
       Serial.println("WiFi:\t\tFail");
   }
 
-  Serial.print("Role:\t");
+  Serial.print("\nRole:\t\t");
   Serial.println((role == CLIENT)? "Client" : "Server");
 
-  // mDNS
-  String domain_name = (role == CLIENT)? DEVICE_ID : PRODUCT_NAME;
-  if(MDNS.begin(domain_name.c_str())) {
-    Serial.println("mDNS:\t\tOK");
-    MDNS.addService("http", "tcp", 80);
-    Serial.println("address:\thttp://" + domain_name + ".local/");
+  if(WiFi.isConnected()){
+    // mDNS
+    String domain_name = (role == CLIENT)? DEVICE_ID : PRODUCT_NAME;
+    if(MDNS.begin(domain_name.c_str())) {
+      Serial.println("mDNS:\t\tOK");
+      MDNS.addService("http", "tcp", 80);
+      Serial.println("address:\thttp://" + domain_name + ".local/");
+    }else{
+      Serial.println("mDNS:\t\tFail");
+    }
   }else{
-    Serial.println("mDNS:\t\tFail");
-  }
-
-  if(role == SERVER){
+    //Access point
     IPAddress AP_IP = IPAddress();
-    if (WiFi.softAP(PRODUCT_NAME.c_str(),AP_PASSWD.c_str())){
+    if (WiFi.softAP((PRODUCT_NAME+"-"+DEVICE_ID).c_str())){
       Serial.println("WiFi_AP:\tOK");
       AP_IP = WiFi.softAPIP();
       Serial.println("Name:\t\t"+PRODUCT_NAME);
-      Serial.println("Password:\t"+AP_PASSWD);
       Serial.print("AP address:\t");
       Serial.println(AP_IP);
     }else{
@@ -128,14 +157,12 @@ void setup() {
     // DNS
     if(dns_server.start(DNS_PORT, "*", AP_IP)){
       Serial.println("DNS:\t\tOK");
+      isDNSup = true;
     }else{
       Serial.println("DNS:\t\tFail");
     }
   }
-  
-  // Power Saving Option
-  // lower wifi client power usage
-  esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+
 
   /*
   ██╗    ██╗███████╗██████╗ ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗
@@ -177,8 +204,35 @@ void setup() {
   web_server.on("/NewDevice",HTTP_GET,[](AsyncWebServerRequest *request){
     Serial.println("\nNewDevice");
     request->send(200, "text/plain", "Server recived");
-    setDefault();
-   });
+    //addClient();
+  });
+  
+  web_server.on("/on",HTTP_GET,[](AsyncWebServerRequest *request){
+   Serial.println("\nOn");
+   request->send(200, "text/plain", "Server recived");
+  });
+  
+  web_server.on("/off",HTTP_GET,[](AsyncWebServerRequest *request){
+   Serial.println("\nOff");
+   request->send(200, "text/plain", "Server recived");
+  });
+
+  web_server.on("/getClient",HTTP_GET,[](AsyncWebServerRequest *request){
+    Serial.println("\ngetClient");
+    String json = "[";
+    for (int i = 0; i < CListptr; ++i){
+      if(i) {json += ",";};
+      json += "{";
+      json += "\"id\":\""+CList[i].id+"\",";
+      json += "\"identifier\":\""+CList[i].identifier+"\",";
+      json += "\"status\":";
+      json += CList[i].status?"true":"false";
+      json += "}";
+    }
+    json += "]";
+
+    request->send(200, "application/json", json);
+  });
 
   web_server.on("/wifiStauts",HTTP_GET,[](AsyncWebServerRequest *request){
     auto status = WiFi.status();
@@ -237,7 +291,8 @@ void setup() {
         preferences.putString("DEVICE_PASSWD",passwd);
         preferences.end();
     }
-    request->send(200, "text/plain", "Restart for the changes to take effect");
+    request->send(200, "text/plain", "New setting applied, wait until restart");
+    ESP.restart();
    });
 
   web_server.on("/wifi_setting",HTTP_POST,[](AsyncWebServerRequest *request){
@@ -250,7 +305,7 @@ void setup() {
     String hidden_SSID = request->getParam("hidden_SSID", true)->value();
     String passwd = request->getParam("passwd", true)->value();
 
-    request->send(200, "text/plain", "Restart for the changes to take effect");
+    request->send(200, "text/plain", "New setting applied, wait until restart");
     
     Serial.println("SSID:\t"+SSID+"\nhidden_SSID:\t"+hidden_SSID+"\npasswd:\t"+passwd);
 
@@ -263,6 +318,8 @@ void setup() {
     preferences.putString("SSID", SSID);
     preferences.putString("PASSWD", passwd);
     preferences.end();
+    
+    ESP.restart();
    });
 
 
@@ -280,5 +337,5 @@ void setup() {
 */
 void loop() {
   // put your main code here, to run repeatedly:
-  dns_server.processNextRequest();
+  if (isDNSup){dns_server.processNextRequest();}
 }

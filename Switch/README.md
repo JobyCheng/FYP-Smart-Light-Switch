@@ -3,9 +3,11 @@ This is a sum up file. Please update it if anything is implemented or need to be
 
 Run `python localServer.py` to have a look on the web page without any post and get function.
 
+css may not update beacuse of cache. Press `ctrl+F5` for most window browser. `cmd+F5` for mac (not sure)
+
 # Feature
 
-- [x] Access Point
+- [x] Access Point (when not connected to a wifi server)
 - [x] DNS ( problem exist, solve it later ) (only resolve address with Suffix `.local`(?))
 - [x] WIfi client
 - [x] mDNS
@@ -20,10 +22,6 @@ Run `python localServer.py` to have a look on the web page without any post and 
 There are a two case:
 - boot at different time
 - boot at the same time
-
-The second case can be handel by using one extra server.
-
-Both case can be handle by server-client model.
 
 Flow (theoratical):
 
@@ -42,7 +40,13 @@ Function that need to be a request:
 - turn off
 - calibration
 
-
+## Role:
+To determent if it is a server or not, check the mDNS address is occupied or not after connect to wifi.
+If it did not join a wifi network. Assume it is a server.
+### Diff:
+||Server|Client|
+|---|---|---|
+|mDNS address|use default name|use id|
 
 ---
 ## AP Sleep
