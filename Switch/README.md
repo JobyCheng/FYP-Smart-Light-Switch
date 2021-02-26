@@ -5,6 +5,8 @@ Run `python localServer.py` to have a look on the web page without any post and 
 
 css may not update beacuse of cache. Press `ctrl+F5` for most window browser. `cmd+F5` for mac (not sure)
 
+*avoid using ADC2 (Wifi use ADC2) (not checked) (from https://github.com/khoih-prog/ESPAsync_WiFiManager)*
+
 # Feature
 
 - [x] Access Point (when not connected to a wifi server)
@@ -16,7 +18,9 @@ css may not update beacuse of cache. Press `ctrl+F5` for most window browser. `c
 - [x] Wifi Page ( Fishished the fundimental part, but the UI is bad )
 - [x] Reset all the setting ( by entering http://esp32.local/reset with connected device )
 - [ ] HOME Page
-- [ ] Multi Switch control
+- [ ] Multi Switch control (part of it finished, need testing and improvement)
+- [ ] time scheduled task
+- [x] time synchronization
 
 ## Multi Switch control Detail
 There are a two case:

@@ -12,32 +12,59 @@
 #include <ESPAsyncWebServer.h>
 #include <SPIFFS.h>
 
-//WIP
-//#include <ESP32Time.h>
+#include <TaskScheduler.h>
 
-const uint16_t DNS_PORT = 53;
+/*
+██╗   ██╗ █████╗ ██████╗ ██╗ █████╗ ██████╗ ██╗     ███████╗
+██║   ██║██╔══██╗██╔══██╗██║██╔══██╗██╔══██╗██║     ██╔════╝
+██║   ██║███████║██████╔╝██║███████║██████╔╝██║     █████╗
+╚██╗ ██╔╝██╔══██║██╔══██╗██║██╔══██║██╔══██╗██║     ██╔══╝
+ ╚████╔╝ ██║  ██║██║  ██║██║██║  ██║██████╔╝███████╗███████╗
+  ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚══════╝
+
+*/
+enum ROLE{SERVER,CLIENT} role;
+
+//
 AsyncWebServer web_server(80);
-DNSServer dns_server;
 Preferences preferences;
 
-bool isDNSup = false;
+DNSServer dns_server;
+const uint16_t DNS_PORT = 53;
 
-enum ROLE{
-  SERVER,
-  CLIENT
-} role;
+// Time
+struct tm timeinfo;
 
+// product name
+// will be used in name of access point, domain name of site
+String PRODUCT_NAME = "esp32";
+
+// Client Storage
 struct clientList
 {
   String id;
   String identifier;
   bool status;
 };
+
 const int LIST_SIZE = 16;
 clientList CList [LIST_SIZE]; // resize if needed
 int CListptr = 0;
 
-void setDefault(){
+void DNS_reqest_callback();
+
+Scheduler taskSchedule;
+Task t_DNS_request(0, TASK_FOREVER,&DNS_reqest_callback,&taskSchedule);
+
+/*
+███████╗██╗   ██╗███╗   ██╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗
+██╔════╝██║   ██║████╗  ██║██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║
+█████╗  ██║   ██║██╔██╗ ██║██║        ██║   ██║██║   ██║██╔██╗ ██║
+██╔══╝  ██║   ██║██║╚██╗██║██║        ██║   ██║██║   ██║██║╚██╗██║
+██║     ╚██████╔╝██║ ╚████║╚██████╗   ██║   ██║╚██████╔╝██║ ╚████║
+╚═╝      ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
+
+*/void setDefault(){
   Serial.println("Clear all setting");
   preferences.begin("setting");
   preferences.clear();
@@ -45,8 +72,13 @@ void setDefault(){
 }
 
 void addClient(String id, String identifier = "", bool status = false){
+  // 
   if (CListptr>=LIST_SIZE){Serial.println("\nMax. No. of client has reached");return;};
   CList[CListptr++] = {id,identifier,status};
+}
+
+void DNS_reqest_callback(){
+  dns_server.processNextRequest();
 }
 
 /*
@@ -64,15 +96,10 @@ void setup() {
 
   // Get all the Needed varible;
   preferences.begin("setting");
-  String SSID = preferences.getString("SSID", "");
-  String PASSWD = preferences.getString("PASSWD", "");
+  String SSID = preferences.isKey("SSID")?preferences.getString("SSID"):String();
+  String PASSWD = preferences.isKey("PASSWD")?preferences.getString("PASSWD"):String();
 
-  String AP_PASSWD = preferences.getString("DEVICE_PASSWD", "12345678");
   preferences.end();
-
-  // product name
-  // will be used in name of access point, domain name of site
-  String PRODUCT_NAME = "esp32";
 
   // create a id w/ MAC address.
   Serial.print("Mac address:\t");
@@ -116,6 +143,7 @@ void setup() {
 
       Serial.print("Server Response:\t");
       Serial.println(httpResponseCode);
+
       if (httpResponseCode == 200){
         role = CLIENT;
       }
@@ -128,7 +156,7 @@ void setup() {
       Serial.println("WiFi:\t\tFail");
   }
 
-  Serial.print("\nRole:\t\t");
+  Serial.print("Role:\t\t");
   Serial.println((role == CLIENT)? "Client" : "Server");
 
   if(WiFi.isConnected()){
@@ -141,28 +169,37 @@ void setup() {
     }else{
       Serial.println("mDNS:\t\tFail");
     }
+
+    // time
+    configTzTime("UTC+8","asia.pool.ntp.org","time.google.com","pool.ntp.org");
+    // Can use function like time(), localtime();
+    struct tm timeinfo;
+    if(getLocalTime(&timeinfo)){
+      Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+    }else{
+      Serial.println("Failed to obtain time");
+    }
+
   }else{
     //Access point
     IPAddress AP_IP = IPAddress();
     if (WiFi.softAP((PRODUCT_NAME+"-"+DEVICE_ID).c_str())){
       Serial.println("WiFi_AP:\tOK");
       AP_IP = WiFi.softAPIP();
-      Serial.println("Name:\t\t"+PRODUCT_NAME);
+      Serial.println("Name:\t\t"+PRODUCT_NAME+"-"+DEVICE_ID);
       Serial.print("AP address:\t");
       Serial.println(AP_IP);
     }else{
       Serial.println("WiFi_AP:\tFail");
     }
 
-    // DNS
     if(dns_server.start(DNS_PORT, "*", AP_IP)){
       Serial.println("DNS:\t\tOK");
-      isDNSup = true;
+      t_DNS_request.enable();
     }else{
       Serial.println("DNS:\t\tFail");
     }
   }
-
 
   /*
   ██╗    ██╗███████╗██████╗ ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗
@@ -189,10 +226,12 @@ void setup() {
   ╚═╝  ╚═╝╚══════╝ ╚══▀▀═╝  ╚═════╝ ╚══════╝╚══════╝   ╚═╝
 
   */
+
   web_server.on("/reset",HTTP_GET,[](AsyncWebServerRequest *request){
     Serial.println("\nReset");
     request->send(200, "text/plain", "Server recived");
     setDefault();
+    ESP.restart();
    });
 
    web_server.on("/restart",HTTP_GET,[](AsyncWebServerRequest *request){
@@ -208,19 +247,20 @@ void setup() {
   });
   
   web_server.on("/on",HTTP_GET,[](AsyncWebServerRequest *request){
-   Serial.println("\nOn");
+   Serial.println("\nGet:\t\tOn");
    request->send(200, "text/plain", "Server recived");
   });
   
   web_server.on("/off",HTTP_GET,[](AsyncWebServerRequest *request){
-   Serial.println("\nOff");
+   Serial.println("\nGet:\t\tOff");
    request->send(200, "text/plain", "Server recived");
   });
 
   web_server.on("/getClient",HTTP_GET,[](AsyncWebServerRequest *request){
-    Serial.println("\ngetClient");
+    Serial.println("\nGet:\t\tClient List");
     String json = "[";
     for (int i = 0; i < CListptr; ++i){
+      // Name
       if(i) {json += ",";};
       json += "{";
       json += "\"id\":\""+CList[i].id+"\",";
@@ -236,7 +276,7 @@ void setup() {
 
   web_server.on("/wifiStauts",HTTP_GET,[](AsyncWebServerRequest *request){
     auto status = WiFi.status();
-    Serial.println("\nwifiStauts");
+    Serial.println("\nGet:\t\tWiFi Status");
     String message;
     switch (status){
       case WL_CONNECTED:
@@ -267,52 +307,55 @@ void setup() {
     request->send(200, "text/plain", message);
    });
 
+  // if  a async WiFi search
   web_server.on("/SSIDlist", HTTP_GET, [](AsyncWebServerRequest *request){
-    Serial.println("\nSSID");
-    int n = WiFi.scanNetworks(); //Not in Async mode
+    Serial.println("\nGet:\t\tSSID");
     String json = "[";
-    for (int i = 0; i < n; ++i){
-      if(i) {json += ",";};
-      json += "{";
-      json += "\"ssid\":\""+WiFi.SSID(i)+"\"";
-      json += "}";
+    int n = WiFi.scanComplete();
+    if(n < 0){
+      WiFi.scanDelete();
+      WiFi.scanNetworks(true);
+      request->send(202);
+      Serial.println("Respond:\t202");
+      return;
+    }
+    if(n){
+      Serial.print("No. of result:\t");
+      Serial.println(n);
+      for (int i = 0; i < n; ++i){
+        Serial.println("\t"+WiFi.SSID(i));
+        if(i) {json += ",";};
+        json += "{";
+        json += "\"ssid\":\""+WiFi.SSID(i)+"\"";
+        json += "}";
+      }
+      WiFi.scanDelete();
+      WiFi.scanNetworks(true);
     }
     json += "]";
+    Serial.println("Respond:\t200");
     request->send(200, "application/json", json);
-    WiFi.scanDelete();
   });
-
-  web_server.on("/AP_passwd",HTTP_POST,[](AsyncWebServerRequest *request){
-    Serial.println("\nSet Access Point password");
-    if(request->hasParam("passwd", true)){
-      String passwd = request->getParam("passwd", true)->value();
-      Serial.println(passwd);
-        preferences.begin("setting");
-        preferences.putString("DEVICE_PASSWD",passwd);
-        preferences.end();
-    }
-    request->send(200, "text/plain", "New setting applied, wait until restart");
-    ESP.restart();
-   });
 
   web_server.on("/wifi_setting",HTTP_POST,[](AsyncWebServerRequest *request){
     Serial.println("\nChange wifi setting");
+    
+    int key_total = 3;
+    String keys[key_total] = {"SSID","hidden_SSID","passwd"};
+    for(int i = 0; i<key_total; ++i){
+      if(!(request->hasParam(keys[i], true))){request->send(202, "text/plain", "Missing data: "+keys[i]); return;}
+    }
 
-    if(!(request->hasParam("SSID", true))){request->send(200, "text/plain", "Missing data: SSID");}
-    if(!(request->hasParam("hidden_SSID", true))){request->send(200, "text/plain", "Missing data: hidden_SSID");}
-    if(!(request->hasParam("passwd", true))){request->send(200, "text/plain", "Missing data: password");}
     String SSID = request->getParam("SSID", true)->value();
     String hidden_SSID = request->getParam("hidden_SSID", true)->value();
     String passwd = request->getParam("passwd", true)->value();
 
+    bool data_not_valid = (passwd.length()<8)||(passwd.length()>63)||(SSID=="");
+    if(data_not_valid){request->send(202, "text/plain", "Invaild Data");return;}
+
     request->send(200, "text/plain", "New setting applied, wait until restart");
     
-    Serial.println("SSID:\t"+SSID+"\nhidden_SSID:\t"+hidden_SSID+"\npasswd:\t"+passwd);
-
-    if (SSID == "hidden"){
-      Serial.println("hidden SSID");
-      SSID=hidden_SSID;
-    }
+    if (SSID == "hidden"){ SSID=hidden_SSID; }
     
     preferences.begin("setting");
     preferences.putString("SSID", SSID);
@@ -337,5 +380,5 @@ void setup() {
 */
 void loop() {
   // put your main code here, to run repeatedly:
-  if (isDNSup){dns_server.processNextRequest();}
+    taskSchedule.execute();
 }

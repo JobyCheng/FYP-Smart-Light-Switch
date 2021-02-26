@@ -27,8 +27,14 @@ function updateWifiStauts(){
 ssidlock = false;
 function updateSSIDlist(){
 	if (ssidlock) {console.log("Please wait for a few second.");return;}
-    ssidlock = true;
-	  $.get("/SSIDlist",function(data,status){
+  ssidlock = true;
+  getSSID();
+}
+
+function getSSID(){
+	$.get("/SSIDlist",function(data,status,xhr){
+    if(xhr.status == 202){getSSID();}
+    if(xhr.status == 200){
       //console.log(data);
       $("#SSID").empty();
       var content = "<optgroup label='Search Result'>"
@@ -37,7 +43,9 @@ function updateSSIDlist(){
       }
       content += "<optgroup label='---------'><option value='hidden'>Hidden Network</option>"
       $("#SSID").html(content);
+      $("#SSID").change();
       ssidlock = false;
+    }
 	});
 }
 
@@ -93,10 +101,7 @@ $(function () {
     var form = $("#AP_passwd_form");
     var passwd = form.find("input[name=passwd]")[0];
     var confirm = form.find("input[name=confirm]")[0];
-    if ((passwd.value.length < 8)) { console.log("password too short"); $(AP_respond).html("Not engought digit."); return; }
-    if ((passwd.value.length > 63)) { console.log("password too long"); $(AP_respond).html("To much digit."); return; }
-    if ((passwd.value != confirm.value)) {console.log("password not equal"); $(AP_respond).html("The two entry doesn't match."); return; }
-    
+
     $.post(
       "/AP_passwd",
       form.serializeArray(),
