@@ -2,13 +2,12 @@
 
 #include <Preferences.h>
 #include <HTTPClient.h>
-
-// Library for Network
+// Network
 #include <WiFi.h>
 #include "esp_wifi.h"
 #include <ESPmDNS.h>
 #include <DNSServer.h>
-// Library for Webserver
+// Webserver
 #include <ESPAsyncWebServer.h>
 #include <SPIFFS.h>
 
@@ -23,21 +22,21 @@
   ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚══════╝
 
 */
+// product name
+// will be used in name of access point, domain name of site
+String PRODUCT_NAME = "esp32";
+
 enum ROLE{SERVER,CLIENT} role;
 
-//
 AsyncWebServer web_server(80);
 Preferences preferences;
 
+// DNS
 DNSServer dns_server;
 const uint16_t DNS_PORT = 53;
 
 // Time
 struct tm timeinfo;
-
-// product name
-// will be used in name of access point, domain name of site
-String PRODUCT_NAME = "esp32";
 
 // Client Storage
 struct clientList
@@ -46,15 +45,14 @@ struct clientList
   String identifier;
   bool status;
 };
-
 const int LIST_SIZE = 16;
 clientList CList [LIST_SIZE]; // resize if needed
 int CListptr = 0;
 
-void DNS_reqest_callback();
-
+// Task Schedule
 Scheduler taskSchedule;
-Task t_DNS_request(0, TASK_FOREVER,&DNS_reqest_callback,&taskSchedule);
+void DNS_reqest_callback();
+Task t_DNS_request(0, TASK_FOREVER, [](){dns_server.processNextRequest();},&taskSchedule);
 
 /*
 ███████╗██╗   ██╗███╗   ██╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗
@@ -64,21 +62,12 @@ Task t_DNS_request(0, TASK_FOREVER,&DNS_reqest_callback,&taskSchedule);
 ██║     ╚██████╔╝██║ ╚████║╚██████╗   ██║   ██║╚██████╔╝██║ ╚████║
 ╚═╝      ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 
-*/void setDefault(){
-  Serial.println("Clear all setting");
-  preferences.begin("setting");
-  preferences.clear();
-  preferences.end();
-}
+*/
 
 void addClient(String id, String identifier = "", bool status = false){
   // 
   if (CListptr>=LIST_SIZE){Serial.println("\nMax. No. of client has reached");return;};
   CList[CListptr++] = {id,identifier,status};
-}
-
-void DNS_reqest_callback(){
-  dns_server.processNextRequest();
 }
 
 /*
@@ -106,7 +95,7 @@ void setup() {
   String DEVICE_ID = String((unsigned long) ESP.getEfuseMac(),16);
   Serial.println(DEVICE_ID);
 
-  // add itself to the client list
+  // Add itself to the client list
   // id is also the url for connection, so use product_name as the server id
   addClient(PRODUCT_NAME,"main", false);
 
@@ -119,8 +108,8 @@ void setup() {
   ╚═╝  ╚═══╝╚══════╝   ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
 
   */
-  // Wifi
 
+  // Wifi
   if(!(SSID == "")){
     Serial.println("Wifi Conf Found");
     WiFi.begin(SSID.c_str(), PASSWD.c_str());
@@ -179,7 +168,6 @@ void setup() {
     }else{
       Serial.println("Failed to obtain time");
     }
-
   }else{
     //Access point
     IPAddress AP_IP = IPAddress();
@@ -192,7 +180,7 @@ void setup() {
     }else{
       Serial.println("WiFi_AP:\tFail");
     }
-
+    //DNS
     if(dns_server.start(DNS_PORT, "*", AP_IP)){
       Serial.println("DNS:\t\tOK");
       t_DNS_request.enable();
@@ -230,7 +218,10 @@ void setup() {
   web_server.on("/reset",HTTP_GET,[](AsyncWebServerRequest *request){
     Serial.println("\nReset");
     request->send(200, "text/plain", "Server recived");
-    setDefault();
+    Serial.println("Clear all setting");
+    preferences.begin("setting");
+    preferences.clear();
+    preferences.end();
     ESP.restart();
    });
 
