@@ -15,7 +15,7 @@
     <div id="navbar" class="navbar" >
         <a href="#home" id="home" class="tab">Home</a>
         <a href="#wifi" id="wifi" class="tab">Wifi</a>
-        <a href="#access_point" id="access_point" class="tab">Access Point</a>
+        <a href="#schedule" id="schedule" class="tab">Schedule</a>
         <a href="javascript:void(0);" class="icon" onclick="ResponsiveNav()">
             <div></div>
             <div></div>
@@ -55,9 +55,7 @@
         <form id="Wifi_form">
             <label for="SSID">SSID:</label>
             <br>
-            <select name="SSID" id="SSID">
-
-            </select>
+            <select name="SSID" id="SSID"></select>
             <input type="text" name="hidden_SSID" id="hidden_input" style="display: none;"></input>
             <br>
             <label for="Password">Password:</label>
@@ -72,23 +70,43 @@
     <!--put code above this div-->
     </div>
 
-    <div id="access_point-content" class="content">
+    <div id="schedule-content" class="content">
     <!--put code under this div-->
-        <form id="AP_passwd_form">
-            <label for="passwd">New Password: (at least 8 digit)</label>
-            <br>
-            <input type="password" name='passwd'>
-            <br>
-            <br>
-            <label for="confirm">Enter the password again</label>
-            <br>
-            <input type="password" name="confirm">
-            <br>
-            <br>
-            <input type="submit" value="Submit">
+    <form>
+        <label for="client">Client:</label>
+        <select name="client" id="client">
+        </select>
+    </form>
+
+        <form id='new-schedule'>
+            <label for="Time">Time:</label>
+            <select name="hour" id="hour">
+            </select>
+            <a>:</a>
+            <select name="minute" id="minute">
+            </select>
+            <label for="action">Action:</label>
+            <select name="action" id="action">
+                <option value='on'>on</option>
+                <option value='off'>off</option>
+            </select>
+            <a>&emsp;&emsp;&emsp;</a>
+            <input type="button" value="Add New schedule to table" onclick='addNewSchedule()'>
         </form>
-        <br>
-        <div id ="AP_respond"></div>
+
+    <table id='schedule-table'>
+        <thead>
+        <tr>
+            <th>Time</th>
+            <th>Action</th>
+            <th>Remove</th>
+        </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+    <button>Apply</button>
+    <button>Cancel</button>
     <!--put code above this div-->
     </div>
 

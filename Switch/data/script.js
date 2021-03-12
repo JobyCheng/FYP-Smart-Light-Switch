@@ -1,3 +1,4 @@
+// Responsive Webpage
 function ResponsiveNav() {
   $("#navbar").toggleClass("responsive");
 }
@@ -13,7 +14,9 @@ function openTab() {
 
   if ($("#navbar.responsive").length == 1) { $(".navbar .icon").click(); }
 }
+// End Responsive Webpage
 
+// Wifi
 wifilock = false;
 function updateWifiStauts(){
 	if (wifilock) {console.log("Please wait for a few second.");return;}
@@ -23,7 +26,9 @@ function updateWifiStauts(){
 		wifilock = false;
 	});
 }
+// End Wifi
 
+// SSID
 ssidlock = false;
 function updateSSIDlist(){
 	if (ssidlock) {console.log("Please wait for a few second.");return;}
@@ -39,7 +44,9 @@ function getSSID(){
       $("#SSID").empty();
       var content = "<optgroup label='Search Result'>"
       for (item of data){
+        if (item.ssid){
         content += "<option value='"+item.ssid+"'>"+item.ssid+"</option>";
+        }
       }
       content += "<optgroup label='---------'><option value='hidden'>Hidden Network</option>"
       $("#SSID").html(content);
@@ -48,28 +55,37 @@ function getSSID(){
     }
 	});
 }
+// SSID end
 
+// Multi-Switch
 function addClient(data){
   for (item of data){
-  $("#switchList").append('\
-    <tr>\
-    <td>'+item.identifier+'</td>\
-    <td>\
-      <label class="switch">\
-        <input type="checkbox" id='+item.id+'>\
-        <span class="slider round"></span>\
-      </label>\
-    </td>\
-    </tr>\
-    ');
+    $("#switchList").append('\
+      <tr>\
+      <td>'+item.identifier+'</td>\
+      <td>\
+        <label class="switch">\
+          <input type="checkbox" id='+item.id+'>\
+          <span class="slider round"></span>\
+        </label>\
+      </td>\
+      </tr>'
+    );
 
     var target = $("#"+item.id)
     target.prop("checked",item.status)
 
-    target.change(function(){
-      //console.log(target.prop("checked"))
+  target.change(function(){
       $.get("http://"+target.prop("id")+".local/"+(target.prop("checked")?"on":"off"))
-    });
+    }
+  );
+  $("#client").empty();
+  content = '';
+  for (item of data){
+    content += "<option value='"+item.identifier+"'>"+item.identifier+"</option>";
+  }
+  $("#client").html(content);
+  $("#client").change();
   }
 }
 
@@ -79,12 +95,53 @@ function getClientList(){
     addClient(data);
   });
 }
+// End Multi-Switch
 
-window.onhashchange = openTab;
+function addNewSchedule(){
+  // [0] is hour, [1] is minute, [2] is action
+  form = $("#new-schedule").serializeArray()
+  insetTable(form[0].value,form[1].value,form[2].value)
+}
+
+function insetTable(minute,hour,action){
+  cron = '* '+minute+' '+hour+' * * * '+action
+  if (matchTable(cron)){return;}
+  $("#schedule-table tbody").append(
+    "<tr data-cron='"+cron+"'>\
+      <th>"+hour+":"+minute+"</th>\
+      <th>"+action+"</th>\
+      <th><button onclick='removeTable(this)'>X</button></th>\
+    </tr>"
+  )
+}
+
+function removeTable(item){
+  $(item).parents('tr').remove()
+}
+
+function matchTable(cron){
+  table = $("#schedule-table tbody tr")
+  for(item of table){
+    splitCron = cron.split(' ');
+    splitItem = item.dataset.cron.split(' ');
+    if ((splitCron[1]==splitItem[1])&&(splitCron[2]==splitItem[2])){
+      return true;
+    };
+  }
+  return false
+}
+
+function applyTable(){
+  entry = $("#schedule-table tbody tr");
+  for(item of entry){
+    item.dataset.cron;
+  }
+}
+
+window.onhashchange = openTab; 
 
 
 //shorthand document.ready function
-//like "setup()" in arduino
 $(function () {
   if (location.hash == "") {
     location.hash = "#home"
@@ -95,27 +152,34 @@ $(function () {
   updateWifiStauts();
   updateSSIDlist();
 
-  // Replace the original post function
-  $('#AP_passwd_form').on('submit', function (e) {
-    e.preventDefault();  //prevent form from submitting
-    var form = $("#AP_passwd_form");
-    var passwd = form.find("input[name=passwd]")[0];
-    var confirm = form.find("input[name=confirm]")[0];
-
-    $.post(
-      "/AP_passwd",
-      form.serializeArray(),
-      function(data, status){
-        $(AP_respond).html(data);
-      });
-  });
+  // Add option to Time
+  for(i=0;i<24;i++){
+    $("#hour").append(
+      "<option value='"+i+"'>"+i+"</option>"
+    )
+  }
+  for(i=0;i<60;i++){
+    $("#minute").append(
+      "<option value='"+i+"'>"+i+"</option>"
+    )
+  }
 
   $("#SSID").change(function(){
-    if ($("#Wifi_form select[name=SSID]").serializeArray()[0].value == "hidden"){
+    if ($("#Wifi_form select[name=SSID]").val() == "hidden"){
       $("#hidden_input").css("display","block");
     }else{
       $("#hidden_input").css("display","none");
     }
+  })
+
+  $("#client").change(function(){
+    $("#schedule-table tbody").empty();
+    $.get("/getSchedule",function(data,status){
+      for(item of data){
+        splitItem = item.value.split(' ');
+        insetTable(splitItem[1],splitItem[2],splitItem[6]);
+      }
+    })
   })
 
   $('#Wifi_form').on('submit', function (e) {

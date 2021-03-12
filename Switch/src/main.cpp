@@ -171,12 +171,16 @@ void setup() {
     struct tm timeinfo;
     if(getLocalTime(&timeinfo)){
       Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+      t_cron.enable();
     }else{
       Serial.println("Failed to obtain time");
     }
 
-    Cron.create((char *) "*/20 * * * * *", test, false);
-    t_cron.enable();
+// testing
+    String str = String("* 30 6 * * * on");
+    bool status = str.endsWith("on");
+    String timing = str.substring(0,str.lastIndexOf(' ')-1);
+//////////
 
   }else{
     //Access point
@@ -243,7 +247,7 @@ void setup() {
 
   web_server.on("/NewDevice",HTTP_GET,[](AsyncWebServerRequest *request){
     Serial.println("\nNewDevice");
-    request->send(200, "text/plain", "Server recived");
+    request->send(200);
     //addClient();
   });
   
@@ -273,6 +277,23 @@ void setup() {
     json += "]";
 
     request->send(200, "application/json", json);
+  });
+
+  web_server.on("/getSchedule",HTTP_GET,[](AsyncWebServerRequest *request){
+    Serial.println("\nGet:\t\tSchedule");
+    String json = "[";
+    json += "{";
+    json += "\"value\":\"";
+    json += "* 30 6 * * * on";
+    json += "\"}";
+    json += "]";
+    request->send(200, "application/json", json);
+  });
+
+  web_server.on("/setSchedule",HTTP_POST,[](AsyncWebServerRequest *request){
+    Serial.println("\nPOST:\t\tSchedule");
+
+    request->send(200);
   });
 
   web_server.on("/wifiStauts",HTTP_GET,[](AsyncWebServerRequest *request){
