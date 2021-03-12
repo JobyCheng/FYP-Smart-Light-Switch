@@ -12,6 +12,7 @@
 #include <SPIFFS.h>
 
 #include <TaskScheduler.h>
+#include <CronAlarms.h>
 
 /*
 ██╗   ██╗ █████╗ ██████╗ ██╗ █████╗ ██████╗ ██╗     ███████╗
@@ -53,6 +54,7 @@ int CListptr = 0;
 Scheduler taskSchedule;
 void DNS_reqest_callback();
 Task t_DNS_request(0, TASK_FOREVER, [](){dns_server.processNextRequest();},&taskSchedule);
+Task t_cron(0, TASK_FOREVER, [](){Cron.delay();},&taskSchedule);
 
 /*
 ███████╗██╗   ██╗███╗   ██╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗
@@ -68,6 +70,10 @@ void addClient(String id, String identifier = "", bool status = false){
   // 
   if (CListptr>=LIST_SIZE){Serial.println("\nMax. No. of client has reached");return;};
   CList[CListptr++] = {id,identifier,status};
+}
+
+void test(){
+  Serial.println("Cron is working");
 }
 
 /*
@@ -168,6 +174,10 @@ void setup() {
     }else{
       Serial.println("Failed to obtain time");
     }
+
+    Cron.create((char *) "*/20 * * * * *", test, false);
+    t_cron.enable();
+
   }else{
     //Access point
     IPAddress AP_IP = IPAddress();
