@@ -73,7 +73,15 @@ void addClient(String id, String identifier = "", bool status = false){
 }
 
 void test(){
-  Serial.println("Cron is working");
+  if(getLocalTime(&timeinfo)){
+    Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+  }
+}
+
+void removeAllCron(){
+  for(uint8_t id=0;id<Cron.count();++id){
+    Cron.free(id);
+  }
 }
 
 /*
@@ -181,6 +189,13 @@ void setup() {
     bool status = str.endsWith("on");
     String timing = str.substring(0,str.lastIndexOf(' ')-1);
 //////////
+    int cronid = Cron.create((char *)"*/20 * * * * *", test, false);
+    Serial.println(cronid);
+    cronid = Cron.create((char *)"*/30 * * * * *", test, false);
+    Serial.println(cronid);
+    removeAllCron();
+    cronid = Cron.create((char *)"*/20 * * * * *", test, false);
+    Serial.println(cronid);
 
   }else{
     //Access point
