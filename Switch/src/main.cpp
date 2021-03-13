@@ -2,12 +2,14 @@
 
 #include <Preferences.h>
 #include <HTTPClient.h>
-// Network
-#include <WiFi.h>
-#include "esp_wifi.h"
-#include <ESPmDNS.h>
-#include <DNSServer.h>
-// Webserver
+
+#include "service_mDNS.h"
+#include "service_DNS.h"
+#include "service_Wifi_AP.h"
+#include "service_time_sync.h"
+#include "service_cron.h"
+#include "service_Wifi_client.h"
+
 #include <ESPAsyncWebServer.h>
 #include <SPIFFS.h>
 
@@ -27,17 +29,11 @@
 // will be used in name of access point, domain name of site
 String PRODUCT_NAME = "esp32";
 
-enum ROLE{SERVER,CLIENT} role;
-
 AsyncWebServer web_server(80);
 Preferences preferences;
-
-// DNS
 DNSServer dns_server;
-const uint16_t DNS_PORT = 53;
 
-// Time
-struct tm timeinfo;
+enum ROLE{SERVER,CLIENT} role;
 
 // Client Storage
 struct clientList
@@ -52,7 +48,6 @@ int CListptr = 0;
 
 // Task Schedule
 Scheduler taskSchedule;
-void DNS_reqest_callback();
 Task t_DNS_request(0, TASK_FOREVER, [](){dns_server.processNextRequest();},&taskSchedule);
 Task t_cron(0, TASK_FOREVER, [](){Cron.delay();},&taskSchedule);
 
@@ -65,27 +60,11 @@ Task t_cron(0, TASK_FOREVER, [](){Cron.delay();},&taskSchedule);
 ╚═╝      ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 
 */
-// dummy function
-void turnON(){Serial.println("ON");};
-void turnOFF(){Serial.println("OFF");};
 
 void addClient(String id, String identifier = "", bool status = false){
   // 
   if (CListptr>=LIST_SIZE){Serial.println("\nMax. No. of client has reached");return;};
   CList[CListptr++] = {id,identifier,status};
-}
-
-void test(){
-  int id = Cron.getTriggeredCronId();
-  if(getLocalTime(&timeinfo)){
-    Serial.print("Cron Task");
-    Serial.print(id);
-    Serial.println(&timeinfo, "\t%A, %B %d %Y %H:%M:%S");
-  }
-}
-
-void removeAllCron(){
-  Cron = CronClass();
 }
 
 /*
@@ -101,14 +80,7 @@ void setup() {
   Serial.begin(115200);
   // put your setup code here, to run once:
 
-  // Get all the Needed varible;
-  preferences.begin("setting");
-  String SSID = preferences.isKey("SSID")?preferences.getString("SSID"):String();
-  String PASSWD = preferences.isKey("PASSWD")?preferences.getString("PASSWD"):String();
-
-  preferences.end();
-
-  // create a id w/ MAC address.
+  // create a id with MAC address.
   Serial.print("Mac address:\t");
   String DEVICE_ID = String((unsigned long) ESP.getEfuseMac(),16);
   Serial.println(DEVICE_ID);
@@ -126,101 +98,40 @@ void setup() {
   ╚═╝  ╚═══╝╚══════╝   ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
 
   */
-
-  // Wifi
-  if(!(SSID == "")){
-    Serial.println("Wifi Conf Found");
-    WiFi.begin(SSID.c_str(), PASSWD.c_str());
-  }
-  // Default as server, change to client if it detect a server.
+   // Default as server, change to client if it detect a server.
   role = SERVER;
 
-  if(WiFi.waitForConnectResult()==WL_CONNECTED){
-      Serial.println("WiFi:\t\tOK");
-      Serial.print("IP address:\t");
-      Serial.println(WiFi.localIP());
+  // Wifi
+  if (wifi_client_start_with_setting()){
+    // Check if there is any server in the LAN
+    HTTPClient http;
+    http.begin(PRODUCT_NAME+".local/NewDevice");
+    http.addHeader("Content-Type", "application/json");
+    // sending the id to server
+    String data = "[{\"id\":"+DEVICE_ID+"}]";
+    int httpResponseCode = http.POST(data);
+    Serial.print("Server Response:\t");
+    Serial.println(httpResponseCode);
+    if (httpResponseCode == 200){
+      role = CLIENT;
+    }
+    Serial.println("Role:\t\t"+((role == CLIENT)?String("Client"):String("Server")));
 
-      // Check if there is any server in the LAN
-      HTTPClient http;
-      http.begin(PRODUCT_NAME+".local/NewDevice");
-      http.addHeader("Content-Type", "application/json");
-      // sending the id to server
-      String data = "[{id:"+DEVICE_ID+"}]";
-      int httpResponseCode = http.POST(data);
-
-      Serial.print("Server Response:\t");
-      Serial.println(httpResponseCode);
-
-      if (httpResponseCode == 200){
-        role = CLIENT;
-      }
-
-      // Power Saving Option
-      // lower wifi client power usage
-      esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
-
-    }else{
-      Serial.println("WiFi:\t\tFail");
-  }
-
-  Serial.print("Role:\t\t");
-  Serial.println((role == CLIENT)? "Client" : "Server");
-
-  if(WiFi.isConnected()){
     // mDNS
-    String domain_name = (role == CLIENT)? DEVICE_ID : PRODUCT_NAME;
-    if(MDNS.begin(domain_name.c_str())) {
-      Serial.println("mDNS:\t\tOK");
-      MDNS.addService("http", "tcp", 80);
-      Serial.println("address:\thttp://" + domain_name + ".local/");
-    }else{
-      Serial.println("mDNS:\t\tFail");
-    }
+    mDNS_start((role == CLIENT)? DEVICE_ID : PRODUCT_NAME);
 
-    // time "UTC-8"== UTC+8, check out
-    // https://unix.stackexchange.com/questions/104088/why-does-tz-utc-8-produce-dates-that-are-utc8
-    configTzTime("UTC-8","asia.pool.ntp.org","time.google.com","pool.ntp.org");
-    // Can use function like time(), localtime();
-    struct tm timeinfo;
-    if(getLocalTime(&timeinfo)){
-      Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+    if(time_sync_start()){  // Start cron if time sync is check.
+      cron_load_from_setting();
       t_cron.enable();
-
-      //load cron task
-      int i = 0;
-      String key = "Schedule_" + String(i);
-      while(preferences.isKey(key.c_str())){
-        String data = preferences.getString(key.c_str());
-        String timing = data.substring(0,data.lastIndexOf(' '));
-        Cron.create((char *)timing.c_str(),(data.endsWith("on")?turnON:turnOFF),false);
-        key = "Schedule_" + String(++i);
-      }
-
-    }else{
-      Serial.println("Failed to obtain time");
     }
-
 
   }else{
     //Access point
-    IPAddress AP_IP = IPAddress();
-    if (WiFi.softAP((PRODUCT_NAME+"-"+DEVICE_ID).c_str())){
-      Serial.println("WiFi_AP:\tOK");
-      AP_IP = WiFi.softAPIP();
-      Serial.println("Name:\t\t"+PRODUCT_NAME+"-"+DEVICE_ID);
-      Serial.print("AP address:\t");
-      Serial.println(AP_IP);
-    }else{
-      Serial.println("WiFi_AP:\tFail");
-    }
+    wifi_ap_start(PRODUCT_NAME+"-"+DEVICE_ID);
     //DNS
-    if(dns_server.start(DNS_PORT, "*", AP_IP)){
-      Serial.println("DNS:\t\tOK");
-      t_DNS_request.enable();
-    }else{
-      Serial.println("DNS:\t\tFail");
-    }
+    if(DNS_start("*", WiFi.softAPIP())){t_DNS_request.enable();}
   }
+
 
   /*
   ██╗    ██╗███████╗██████╗ ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗
@@ -323,26 +234,14 @@ void setup() {
   web_server.on("/setSchedule",HTTP_POST,[](AsyncWebServerRequest *request){
     Serial.println("\nPOST:\t\tSet Schedule");
     preferences.begin("setting");
-    removeAllCron();
+    cron_clear();
 
     int i = 0;
-    String key = "Schedule_" + String(i);
-    while(preferences.isKey(key.c_str())){
-      if (!preferences.remove(key.c_str())){Serial.println("Fail to remove key "+key);}
-      key = "Schedule_" + String(++i);
-    }
-
-    i = 0;
-    key = "Schedule_" + String(i);
     while(request->hasParam(String(i).c_str(), true)){
       String data = request->getParam(String(i).c_str(), true)->value();
-      String timing = data.substring(0,data.lastIndexOf(' '));
-      uint8_t result = 255; //which is fail for cron.create
-      result = Cron.create((char *)timing.c_str(),(data.endsWith("on")?turnON:turnOFF),false);
-      Serial.print("Cron id:\t");
-      Serial.println(result);
-      if(!preferences.putString(key.c_str(), data)){Serial.println("Fail to add data to key "+key);}
-      key = "Schedule_" + String(++i);
+      cron_add(data);
+      if(!preferences.putString(cron_key(i).c_str(), data)){Serial.println("Fail to add data to key "+ cron_key(i));}
+      ++i;
     }
     preferences.end();
     request->send(200);
