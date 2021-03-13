@@ -18,9 +18,4 @@ void responses_wifiStauts (AsyncWebServerRequest *request);
 void responses_SSIDlist (AsyncWebServerRequest *request);
 void responses_wifi_setting (AsyncWebServerRequest *request);
 
-
-
-
-
-
 #endif
