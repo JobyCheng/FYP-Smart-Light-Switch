@@ -38,7 +38,7 @@ function updateSSIDlist(){
 
 function getSSID(){
 	$.get("/SSIDlist",function(data,status,xhr){
-    if(xhr.status == 202){getSSID();}
+    if(xhr.status == 202){setTimeout(getSSID,500);}
     if(xhr.status == 200){
       //console.log(data);
       $("#SSID").empty();

@@ -32,3 +32,21 @@ uint8_t cron_add(String custom_cron){
     String timing = custom_cron.substring(0,custom_cron.lastIndexOf(' '));
     return Cron.create((char *)timing.c_str(),(custom_cron.endsWith("on")?turnON:turnOFF),false);
 }
+
+String cron_get_list_json(){
+    preferences.begin("setting");
+    String json = "[";
+    int i = 0;
+    while(preferences.isKey(cron_key(i).c_str())){
+        String data = preferences.getString(cron_key(i).c_str());
+        if(i) {json += ",";};
+        json += "{\"value\":\"";
+        json += data.c_str();
+        json += "\"}";
+        ++i;
+    }
+    json += "]";
+    preferences.end();
+
+    return json;
+}
