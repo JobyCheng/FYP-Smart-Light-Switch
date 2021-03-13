@@ -83,7 +83,7 @@ function addClient(data){
     $("#client").empty();
     content = '';
     for (item of data){
-      content += "<option value='"+item.identifier+"'>"+item.identifier+"</option>";
+      content += "<option value='"+item.id+"'>"+item.identifier+"</option>";
     }
   $("#client").html(content);
   $("#client").change();
@@ -181,7 +181,7 @@ $(function () {
 
   $("#client").change(function(){
     $("#schedule-table tbody").empty();
-    $.get("/getSchedule",function(data,status){
+    $.get("http://"+$("#client-selector #client").val()+".local/getSchedule",function(data,status){
       for(item of data){
         splitItem = item.value.split(' ');
         insetTable(splitItem[1],splitItem[2],splitItem[6]);
@@ -197,6 +197,5 @@ $(function () {
       function(data, status){
         $(Wifi_respond).html(data);
       });
-  });
-  
+  });  
 })
