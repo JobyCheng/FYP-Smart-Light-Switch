@@ -5,6 +5,7 @@
 #include <Preferences.h>
 
 extern Preferences preferences;
+extern CronClass Cron;
 
 String cron_key(int num);
 void cron_clear();
