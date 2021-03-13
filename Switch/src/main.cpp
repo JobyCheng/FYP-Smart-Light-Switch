@@ -46,6 +46,11 @@ struct clientList
 const int LIST_SIZE = 16;
 clientList CList [LIST_SIZE]; // resize if needed
 int CListptr = 0;
+std::array<String, LIST_SIZE> list;
+
+String DEVICE_ID;
+String LABEL;
+
 
 // Task Schedule
 Scheduler taskSchedule;
@@ -82,9 +87,12 @@ void setup() {
   // put your setup code here, to run once:
 
   // create a id with MAC address.
-  Serial.print("Mac address:\t");
-  String DEVICE_ID = String((unsigned long) ESP.getEfuseMac(),16);
-  Serial.println(DEVICE_ID);
+  DEVICE_ID = String((unsigned long) ESP.getEfuseMac(),16);
+  // get label if any
+  LABEL = preferences.isKey("LABEL")?preferences.getString("LABEL"):String();
+  
+  Serial.println("ID:\t\t"+DEVICE_ID);
+  Serial.println("label:\t\t"+LABEL);
 
   // Add itself to the client list
   // id is also the url for connection, so use product_name as the server id
@@ -116,10 +124,11 @@ void setup() {
     if (httpResponseCode == 200){
       role = CLIENT;
     }
-    Serial.println("Role:\t\t"+((role == CLIENT)?String("Client"):String("Server")));
 
+    Serial.println("Role:\t\t"+((role == CLIENT)?String("Client"):String("Server")));
+    
     // mDNS
-    mDNS_start((role == CLIENT)? DEVICE_ID : PRODUCT_NAME);
+    mDNS_start((role==CLIENT)?DEVICE_ID:PRODUCT_NAME);
 
     if(time_sync_start()){  // Start cron if time sync is check.
       cron_load_from_setting();
@@ -181,14 +190,21 @@ void setup() {
       // Name
       if(i) {json += ",";};
       json += "{";
-      json += "\"id\":\""+CList[i].id+"\",";
-      json += "\"identifier\":\""+CList[i].identifier+"\",";
-      json += "\"status\":";
-      json += CList[i].status?"true":"false";
+      json += "\"id\":\""+CList[i].id+"\"";
       json += "}";
     }
     json += "]";
 
+    request->send(200, "application/json", json);
+  });
+
+  web_server.on("/info",HTTP_GET,[](AsyncWebServerRequest *request){
+    Serial.println("\nGet:\t\tInfo");
+    String json = "[{";
+    json += "\"id\":\""+((role==CLIENT)?DEVICE_ID:PRODUCT_NAME)+"\",";
+    json += "\"label\":\""+((LABEL=="")?DEVICE_ID:LABEL)+"\",";
+    json += "\"status\":"+String("false"); // NEED TO BE CHANGE!!!!!!!!!!!!!!!!!!!!!!
+    json += "}]";
     request->send(200, "application/json", json);
   });
 

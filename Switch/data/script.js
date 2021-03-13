@@ -60,9 +60,10 @@ function getSSID(){
 // Multi-Switch
 function addClient(data){
   for (var item of data){
+    // On Home page
     $("#switchList").append('\
       <tr>\
-      <td>'+item.identifier+'</td>\
+      <td>'+item.label+'</td>\
       <td>\
         <label class="switch">\
           <input type="checkbox" id='+item.id+'>\
@@ -71,28 +72,27 @@ function addClient(data){
       </td>\
       </tr>'
     );
-
     var target = $("#"+item.id)
     target.prop("checked",item.status)
-
-    target.change(function(){
-      $.get("http://"+target.prop("id")+".local/"+(target.prop("checked")?"on":"off"))
-    }
+    target.change(
+      function(){
+        $.get("http://"+target.prop("id")+".local/"+(target.prop("checked")?"on":"off"))
+      }
     );
 
-    $("#client").empty();
-    content = '';
-    for (item of data){
-      content += "<option value='"+item.id+"'>"+item.identifier+"</option>";
-    }
-  $("#client").html(content);
-  $("#client").change();
+    // On Schedule page
+    $("#client").append("<option value='"+item.id+"'>"+item.label+"</option>");
+    $("#client").change();
   }
 }
 
 function getClientList(){
   $.get("/getClient",function(data,status){
-    addClient(data);
+    for (var item of data){
+      $.get("http://"+item.id+".local/info", function(data,status){
+        addClient(data);
+      })
+    }
   });
 }
 // End Multi-Switch
