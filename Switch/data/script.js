@@ -59,7 +59,7 @@ function getSSID(){
 
 // Multi-Switch
 function addClient(data){
-  for (item of data){
+  for (var item of data){
     $("#switchList").append('\
       <tr>\
       <td>'+item.identifier+'</td>\
@@ -75,15 +75,16 @@ function addClient(data){
     var target = $("#"+item.id)
     target.prop("checked",item.status)
 
-  target.change(function(){
+    target.change(function(){
       $.get("http://"+target.prop("id")+".local/"+(target.prop("checked")?"on":"off"))
     }
-  );
-  $("#client").empty();
-  content = '';
-  for (item of data){
-    content += "<option value='"+item.identifier+"'>"+item.identifier+"</option>";
-  }
+    );
+
+    $("#client").empty();
+    content = '';
+    for (item of data){
+      content += "<option value='"+item.identifier+"'>"+item.identifier+"</option>";
+    }
   $("#client").html(content);
   $("#client").change();
   }
@@ -91,7 +92,6 @@ function addClient(data){
 
 function getClientList(){
   $.get("/getClient",function(data,status){
-    //console.log(data);
     addClient(data);
   });
 }
@@ -100,15 +100,15 @@ function getClientList(){
 function addNewSchedule(){
   // [0] is hour, [1] is minute, [2] is action
   form = $("#new-schedule").serializeArray()
-  insetTable(form[0].value,form[1].value,form[2].value)
+  insetTable(form[1].value,form[0].value,form[2].value)
 }
 
 function insetTable(minute,hour,action){
-  cron = '* '+minute+' '+hour+' * * * '+action
+  cron = '0 '+minute+' '+hour+' * * * '+action
   if (matchTable(cron)){return;}
   $("#schedule-table tbody").append(
     "<tr data-cron='"+cron+"'>\
-      <th>"+hour+":"+minute+"</th>\
+      <th>"+hour+":"+(minute<10?"0":"")+minute+"</th>\
       <th>"+action+"</th>\
       <th><button onclick='removeTable(this)'>X</button></th>\
     </tr>"
@@ -132,10 +132,17 @@ function matchTable(cron){
 }
 
 function applyTable(){
-  entry = $("#schedule-table tbody tr");
-  for(item of entry){
-    item.dataset.cron;
+  var entry = $("#schedule-table tbody tr");
+  var data = [];
+  var num = 0;
+  for(var item of entry){
+    temp = {
+      name:num.toString(10),
+      value:item.dataset.cron
+    }
+    data[num++]=temp;
   }
+  $.post("/setSchedule",data);
 }
 
 window.onhashchange = openTab; 
@@ -153,12 +160,12 @@ $(function () {
   updateSSIDlist();
 
   // Add option to Time
-  for(i=0;i<24;i++){
+  for(var i=0;i<24;i++){
     $("#hour").append(
       "<option value='"+i+"'>"+i+"</option>"
     )
   }
-  for(i=0;i<60;i++){
+  for(var i=0;i<60;i++){
     $("#minute").append(
       "<option value='"+i+"'>"+i+"</option>"
     )

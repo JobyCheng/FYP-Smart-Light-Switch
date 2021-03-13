@@ -65,6 +65,9 @@ Task t_cron(0, TASK_FOREVER, [](){Cron.delay();},&taskSchedule);
 ╚═╝      ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 
 */
+// dummy function
+void turnON(){Serial.println("ON");};
+void turnOFF(){Serial.println("OFF");};
 
 void addClient(String id, String identifier = "", bool status = false){
   // 
@@ -174,26 +177,28 @@ void setup() {
       Serial.println("mDNS:\t\tFail");
     }
 
-    // time
-    configTzTime("UTC+8","asia.pool.ntp.org","time.google.com","pool.ntp.org");
+    // time "UTC-8"== UTC+8, check out
+    // https://unix.stackexchange.com/questions/104088/why-does-tz-utc-8-produce-dates-that-are-utc8
+    configTzTime("UTC-8","asia.pool.ntp.org","time.google.com","pool.ntp.org");
     // Can use function like time(), localtime();
     struct tm timeinfo;
     if(getLocalTime(&timeinfo)){
       Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
       t_cron.enable();
+
+      //load cron task
+      int i = 0;
+      String key = "Schedule_" + String(i);
+      while(preferences.isKey(key.c_str())){
+        String data = preferences.getString(key.c_str());
+        String timing = data.substring(0,data.lastIndexOf(' '));
+        Cron.create((char *)timing.c_str(),(data.endsWith("on")?turnON:turnOFF),false);
+        key = "Schedule_" + String(++i);
+      }
+
     }else{
       Serial.println("Failed to obtain time");
     }
-
-// testing
-    String str = String("* 30 6 * * * on");
-    bool status = str.endsWith("on");
-    String timing = str.substring(0,str.lastIndexOf(' ')-1);
-//////////
-    int cronid = Cron.create((char *)"*/20 * * * * *", test, false);
-    cronid = Cron.create((char *)"*/30 * * * * *", test, false);
-    removeAllCron();
-    cronid = Cron.create((char *)"*/20 * * * * *", test, false);
 
 
   }else{
@@ -245,7 +250,7 @@ void setup() {
 
   web_server.on("/reset",HTTP_GET,[](AsyncWebServerRequest *request){
     Serial.println("\nReset");
-    request->send(200, "text/plain", "Server recived");
+    request->send(200);
     Serial.println("Clear all setting");
     preferences.begin("setting");
     preferences.clear();
@@ -255,7 +260,7 @@ void setup() {
 
    web_server.on("/restart",HTTP_GET,[](AsyncWebServerRequest *request){
     Serial.println("\nRestart");
-    request->send(200, "text/plain", "Server recived");
+    request->send(200);
     ESP.restart();
   });
 
@@ -267,12 +272,12 @@ void setup() {
   
   web_server.on("/on",HTTP_GET,[](AsyncWebServerRequest *request){
    Serial.println("\nGet:\t\tOn");
-   request->send(200, "text/plain", "Server recived");
+   request->send(200);
   });
   
   web_server.on("/off",HTTP_GET,[](AsyncWebServerRequest *request){
    Serial.println("\nGet:\t\tOff");
-   request->send(200, "text/plain", "Server recived");
+   request->send(200);
   });
 
   web_server.on("/getClient",HTTP_GET,[](AsyncWebServerRequest *request){
@@ -294,19 +299,52 @@ void setup() {
   });
 
   web_server.on("/getSchedule",HTTP_GET,[](AsyncWebServerRequest *request){
-    Serial.println("\nGet:\t\tSchedule");
+    Serial.println("\nGet:\t\tGet Schedule");
+    preferences.begin("setting");
+
     String json = "[";
-    json += "{";
-    json += "\"value\":\"";
-    json += "* 30 6 * * * on";
-    json += "\"}";
+    int i = 0;
+    String key = "Schedule_" + String(i);
+    while(preferences.isKey(key.c_str())){
+      Serial.println("Reading schedule_"+String(i)+"...");
+      String data = preferences.getString(key.c_str());
+      if(i) {json += ",";};
+      json += "{\"value\":\"";
+      json += data.c_str();
+      json += "\"}";
+      key = "Schedule_" + String(++i);
+    }
     json += "]";
+
+    preferences.end();
     request->send(200, "application/json", json);
   });
 
   web_server.on("/setSchedule",HTTP_POST,[](AsyncWebServerRequest *request){
-    Serial.println("\nPOST:\t\tSchedule");
+    Serial.println("\nPOST:\t\tSet Schedule");
+    preferences.begin("setting");
+    removeAllCron();
 
+    int i = 0;
+    String key = "Schedule_" + String(i);
+    while(preferences.isKey(key.c_str())){
+      if (!preferences.remove(key.c_str())){Serial.println("Fail to remove key "+key);}
+      key = "Schedule_" + String(++i);
+    }
+
+    i = 0;
+    key = "Schedule_" + String(i);
+    while(request->hasParam(String(i).c_str(), true)){
+      String data = request->getParam(String(i).c_str(), true)->value();
+      String timing = data.substring(0,data.lastIndexOf(' '));
+      uint8_t result = 255; //which is fail for cron.create
+      result = Cron.create((char *)timing.c_str(),(data.endsWith("on")?turnON:turnOFF),false);
+      Serial.print("Cron id:\t");
+      Serial.println(result);
+      if(!preferences.putString(key.c_str(), data)){Serial.println("Fail to add data to key "+key);}
+      key = "Schedule_" + String(++i);
+    }
+    preferences.end();
     request->send(200);
   });
 
