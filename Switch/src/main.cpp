@@ -30,27 +30,17 @@
 // will be used in name of access point, domain name of site
 String PRODUCT_NAME = "esp32";
 
+std::vector<String> client_list;
+
+enum ROLE{SERVER,CLIENT} role;
+String DEVICE_ID;
+String LABEL;
+String MAC_ADDR;
+
 AsyncWebServer web_server(80);
 Preferences preferences;
 DNSServer dns_server;
-
-enum ROLE{SERVER,CLIENT} role;
-
-// Client Storage
-struct clientList
-{
-  String id;
-  String identifier;
-  bool status;
-};
-const int LIST_SIZE = 16;
-clientList CList [LIST_SIZE]; // resize if needed
-int CListptr = 0;
-std::array<String, LIST_SIZE> list;
-
-String DEVICE_ID;
-String LABEL;
-
+extern CronClass Cron;
 
 // Task Schedule
 Scheduler taskSchedule;
@@ -67,12 +57,6 @@ Task t_cron(0, TASK_FOREVER, [](){Cron.delay();},&taskSchedule);
 
 */
 
-void addClient(String id, String identifier = "", bool status = false){
-  // 
-  if (CListptr>=LIST_SIZE){Serial.println("\nMax. No. of client has reached");return;};
-  CList[CListptr++] = {id,identifier,status};
-}
-
 /*
 ███████╗███████╗████████╗██╗   ██╗██████╗
 ██╔════╝██╔════╝╚══██╔══╝██║   ██║██╔══██╗
@@ -87,16 +71,16 @@ void setup() {
   // put your setup code here, to run once:
 
   // create a id with MAC address.
-  DEVICE_ID = String((unsigned long) ESP.getEfuseMac(),16);
+  MAC_ADDR = String((unsigned long) ESP.getEfuseMac(),16);
   // get label if any
   LABEL = preferences.isKey("LABEL")?preferences.getString("LABEL"):String();
   
+  // Default as server, change to client if it detect a server.
+  role = SERVER;
+  DEVICE_ID = PRODUCT_NAME;
+
   Serial.println("ID:\t\t"+DEVICE_ID);
   Serial.println("label:\t\t"+LABEL);
-
-  // Add itself to the client list
-  // id is also the url for connection, so use product_name as the server id
-  addClient(PRODUCT_NAME,"main", false);
 
   /*
   ███╗   ██╗███████╗████████╗██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗
@@ -107,28 +91,28 @@ void setup() {
   ╚═╝  ╚═══╝╚══════╝   ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
 
   */
-   // Default as server, change to client if it detect a server.
-  role = SERVER;
 
   // Wifi
   if (wifi_client_start_with_setting()){
     // Check if there is any server in the LAN
     HTTPClient http;
     http.begin(PRODUCT_NAME+".local/NewDevice");
-    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     // sending the id to server
-    String data = "[{\"id\":"+DEVICE_ID+"}]";
+    String data = "[{\"name\":\"client-id\",\"value\":\""+DEVICE_ID+"\"}]";
     int httpResponseCode = http.POST(data);
     Serial.print("Server Response:\t");
     Serial.println(httpResponseCode);
+
     if (httpResponseCode == 200){
       role = CLIENT;
+      DEVICE_ID=MAC_ADDR;
     }
 
     Serial.println("Role:\t\t"+((role == CLIENT)?String("Client"):String("Server")));
     
     // mDNS
-    mDNS_start((role==CLIENT)?DEVICE_ID:PRODUCT_NAME);
+    mDNS_start(DEVICE_ID);
 
     if(time_sync_start()){  // Start cron if time sync is check.
       cron_load_from_setting();
@@ -140,6 +124,13 @@ void setup() {
     wifi_ap_start(PRODUCT_NAME+"-"+DEVICE_ID);
     //DNS
     if(DNS_start("*", WiFi.softAPIP())){t_DNS_request.enable();}
+  }
+
+  // Add itself to the client list
+  // id is also the url for connection, so use product_name as the server id
+  client_list.clear();
+  if (role == SERVER){  // client do not need to use client_list
+    client_list.push_back(DEVICE_ID);
   }
 
 
@@ -182,31 +173,10 @@ void setup() {
   web_server.on("/SSIDlist", HTTP_GET,responses_SSIDlist);
   web_server.on("/wifi_setting",HTTP_POST,responses_wifi_setting);
 
-  web_server.on("/NewDevice",HTTP_GET,responses_NewDevice);
-  web_server.on("/getClient",HTTP_GET,[](AsyncWebServerRequest *request){
-    Serial.println("\nGet:\t\tClient List");
-    String json = "[";
-    for (int i = 0; i < CListptr; ++i){
-      // Name
-      if(i) {json += ",";};
-      json += "{";
-      json += "\"id\":\""+CList[i].id+"\"";
-      json += "}";
-    }
-    json += "]";
+  web_server.on("/NewDevice",HTTP_POST,responses_NewDevice);
+  web_server.on("/getClient",HTTP_GET,responses_getClient);
 
-    request->send(200, "application/json", json);
-  });
-
-  web_server.on("/info",HTTP_GET,[](AsyncWebServerRequest *request){
-    Serial.println("\nGet:\t\tInfo");
-    String json = "[{";
-    json += "\"id\":\""+((role==CLIENT)?DEVICE_ID:PRODUCT_NAME)+"\",";
-    json += "\"label\":\""+((LABEL=="")?DEVICE_ID:LABEL)+"\",";
-    json += "\"status\":"+String("false"); // NEED TO BE CHANGE!!!!!!!!!!!!!!!!!!!!!!
-    json += "}]";
-    request->send(200, "application/json", json);
-  });
+  web_server.on("/info",HTTP_GET,responses_info);
 
   web_server.begin();
 }

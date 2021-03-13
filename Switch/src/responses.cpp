@@ -18,7 +18,10 @@ void responses_restart (AsyncWebServerRequest *request){
 
 void responses_NewDevice (AsyncWebServerRequest *request){
     Serial.println("\nNewDevice");
-    request->send(200);
+    if((request->hasParam("client-id", true))){
+      request->send(200);
+      client_list.push_back(request->getParam("client-id")->value());
+    }
 }
 
 void responses_on (AsyncWebServerRequest *request){
@@ -138,4 +141,29 @@ void responses_wifi_setting (AsyncWebServerRequest *request){
     preferences.end();
     
     ESP.restart();
+}
+
+void responses_getClient (AsyncWebServerRequest *request){
+  Serial.println("\nGet:\t\tClient List");
+  String json = "[";
+  for (int i = 0; i < client_list.size(); ++i){
+    // Name
+    if(i) {json += ",";};
+    json += "{";
+    json += "\"id\":\""+client_list[i]+"\"";
+    json += "}";
+  }
+  json += "]";
+
+  request->send(200, "application/json", json);
+}
+
+void responses_info (AsyncWebServerRequest *request){
+  Serial.println("\nGet:\t\tInfo");
+  String json = "[{";
+  json += "\"id\":\""+DEVICE_ID+"\",";
+  json += "\"label\":\""+((LABEL=="")?MAC_ADDR:LABEL)+"\",";
+  json += "\"status\":"+String("false"); // NEED TO BE CHANGE!!!!!!!!!!!!!!!!!!!!!!
+  json += "}]";
+  request->send(200, "application/json", json);
 }
