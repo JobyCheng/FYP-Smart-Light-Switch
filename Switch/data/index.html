@@ -26,6 +26,8 @@
     <div id="home-content" class="content">
     <!--put code under this div-->
         <table>
+            <col class="column-label">
+            <col class="column-status">
         <thead>
         <tr>
             <th>Switches</th>
@@ -80,13 +82,11 @@
 
         <form id='new-schedule'>
             <label for="Time">Time:</label>
-            <select name="hour" id="hour">
-            </select>
+            <select name="hour"></select>
             <a>:</a>
-            <select name="minute" id="minute">
-            </select>
+            <select name="minute"></select>
             <label for="action">Action:</label>
-            <select name="action" id="action">
+            <select name="action">
                 <option value='on'>on</option>
                 <option value='off'>off</option>
             </select>

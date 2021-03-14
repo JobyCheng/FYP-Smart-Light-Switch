@@ -6,8 +6,13 @@
 #include <Preferences.h>
 #include "service_cron.h"
 
+struct client_entry{
+    String id;
+    String label;
+};
+
 extern Preferences preferences;
-extern std::vector<String> client_list;
+extern std::vector<client_entry> client_list;
 extern String DEVICE_ID;
 extern String LABEL;
 extern String MAC_ADDR;
@@ -24,5 +29,6 @@ void responses_SSIDlist (AsyncWebServerRequest *request);
 void responses_wifi_setting (AsyncWebServerRequest *request);
 void responses_getClient (AsyncWebServerRequest *request);
 void responses_info (AsyncWebServerRequest *request);
+void responses_setLabel (AsyncWebServerRequest *request);
 
 #endif

@@ -30,7 +30,7 @@
 // will be used in name of access point, domain name of site
 String PRODUCT_NAME = "esp32";
 
-std::vector<String> client_list;
+std::vector<client_entry> client_list;
 
 enum ROLE{SERVER,CLIENT} role;
 String DEVICE_ID;
@@ -41,6 +41,7 @@ AsyncWebServer web_server(80);
 Preferences preferences;
 DNSServer dns_server;
 extern CronClass Cron;
+extern WiFiClass WiFi;
 
 // Task Schedule
 Scheduler taskSchedule;
@@ -73,7 +74,7 @@ void setup() {
   // create a id with MAC address.
   MAC_ADDR = String((unsigned long) ESP.getEfuseMac(),16);
   // get label if any
-  LABEL = preferences.isKey("LABEL")?preferences.getString("LABEL"):String();
+  LABEL = preferences.isKey("LABEL")?preferences.getString("LABEL"):String(MAC_ADDR);
   
   // Default as server, change to client if it detect a server.
   role = SERVER;
@@ -99,7 +100,11 @@ void setup() {
     http.begin(PRODUCT_NAME+".local/NewDevice");
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     // sending the id to server
-    String data = "[{\"name\":\"client-id\",\"value\":\""+DEVICE_ID+"\"}]";
+    String data = "[";
+    data += "{\"name\":\"id\",\"value\":\""+DEVICE_ID+"\"}";
+    data += ",";
+    data += "{\"name\":\"label\",\"value\":\""+LABEL+"\"}";
+    data += "]";
     int httpResponseCode = http.POST(data);
     Serial.print("Server Response:\t");
     Serial.println(httpResponseCode);
@@ -121,16 +126,15 @@ void setup() {
 
   }else{
     //Access point
-    wifi_ap_start(PRODUCT_NAME+"-"+DEVICE_ID);
+    wifi_ap_start(PRODUCT_NAME+"-"+MAC_ADDR);
     //DNS
     if(DNS_start("*", WiFi.softAPIP())){t_DNS_request.enable();}
   }
 
   // Add itself to the client list
   // id is also the url for connection, so use product_name as the server id
-  client_list.clear();
   if (role == SERVER){  // client do not need to use client_list
-    client_list.push_back(DEVICE_ID);
+    client_list.push_back({DEVICE_ID,LABEL});
   }
 
 
@@ -177,6 +181,7 @@ void setup() {
   web_server.on("/getClient",HTTP_GET,responses_getClient);
 
   web_server.on("/info",HTTP_GET,responses_info);
+  web_server.on("/setLabel",HTTP_GET,responses_setLabel);
 
   web_server.begin();
 }

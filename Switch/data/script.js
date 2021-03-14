@@ -62,28 +62,36 @@ function addClient(data){
   for (var item of data){
     // On Home page
     $("#switchList").append('\
-      <tr>\
-      <td>'+item.label+'</td>\
+      <tr id='+item.id+'>\
+      <td><a>'+item.label+'</a><button style="float: right;" onclick="editLabel(this)">edit label</button></td>\
       <td>\
         <label class="switch">\
-          <input type="checkbox" id='+item.id+'>\
+          <input type="checkbox">\
           <span class="slider round"></span>\
         </label>\
       </td>\
       </tr>'
     );
-    var target = $("#"+item.id)
+    var target = $("#"+item.id+" input[type='checkbox']")
     target.prop("checked",item.status)
     target.change(
       function(){
-        $.get("http://"+target.prop("id")+".local/"+(target.prop("checked")?"on":"off"))
+        $.get("http://"+$(this).parents("tr").prop("id")+".local/"+($(this).prop("checked")?"on":"off"))
       }
     );
-
-    // On Schedule page
-    $("#client").append("<option value='"+item.id+"'>"+item.label+"</option>");
-    $("#client").change();
   }
+}
+
+function editLabel(item){
+  var td = $(item).parents("td")
+  td.html('<input name="label" type="text" value='+td.find("a").html()+'></input>')
+  td.find("input[name='label']").change(function(){
+      var label = $(this).val();
+      var td = $(this).parents("td");
+      $.get("http://"+$(this).parents("tr").prop("id")+".local/setLabel","label="+label)
+      td.html("<a>"+label+'</a><button style="float: right;" onclick="editLabel(this)">edit label</button>');
+    }
+  )
 }
 
 function getClientList(){
@@ -92,6 +100,9 @@ function getClientList(){
       $.get("http://"+item.id+".local/info", function(data,status){
         addClient(data);
       })
+      // On Schedule page
+      $("#client").append("<option value='"+item.id+"'>"+item.label+"</option>");
+      $("#client").change();
     }
   });
 }
@@ -99,12 +110,15 @@ function getClientList(){
 
 function addNewSchedule(){
   // [0] is hour, [1] is minute, [2] is action
-  form = $("#new-schedule").serializeArray()
-  insetTable(form[1].value,form[0].value,form[2].value)
+  var form = $("#new-schedule");
+  var hour = form.find("select[name='hour']").val();
+  var minute = form.find("select[name='minute']").val();
+  var action = form.find("select[name='action']").val();
+  insetTable(minute,hour,action);
 }
 
 function insetTable(minute,hour,action){
-  cron = '0 '+minute+' '+hour+' * * * '+action
+  var cron = '0 '+minute+' '+hour+' * * * '+action
   if (matchTable(cron)){return;}
   $("#schedule-table tbody").append(
     "<tr data-cron='"+cron+"'>\
@@ -147,7 +161,6 @@ function applyTable(){
 
 window.onhashchange = openTab; 
 
-
 //shorthand document.ready function
 $(function () {
   if (location.hash == "") {
@@ -157,19 +170,13 @@ $(function () {
   }
   getClientList();
   updateWifiStauts();
-  updateSSIDlist();
+  setTimeout(updateSSIDlist,1000);
 
   // Add option to Time
-  for(var i=0;i<24;i++){
-    $("#hour").append(
-      "<option value='"+i+"'>"+i+"</option>"
-    )
-  }
-  for(var i=0;i<60;i++){
-    $("#minute").append(
-      "<option value='"+i+"'>"+i+"</option>"
-    )
-  }
+  var hour = $("#new-schedule select[name='hour']");
+  var minutes = $("#new-schedule select[name='minute']")
+  for(var i=0;i<24;i++){hour.append("<option value='"+i+"'>"+i+"</option>")}
+  for(var i=0;i<60;i++){minutes.append("<option value='"+i+"'>"+i+"</option>")}
 
   $("#SSID").change(function(){
     if ($("#Wifi_form select[name=SSID]").val() == "hidden"){
@@ -197,5 +204,6 @@ $(function () {
       function(data, status){
         $(Wifi_respond).html(data);
       });
-  });  
+  });
+
 })

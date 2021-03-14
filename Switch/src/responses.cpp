@@ -18,9 +18,9 @@ void responses_restart (AsyncWebServerRequest *request){
 
 void responses_NewDevice (AsyncWebServerRequest *request){
     Serial.println("\nNewDevice");
-    if((request->hasParam("client-id", true))){
+    if((request->hasParam("id", true))&&request->hasParam("label", true)){
       request->send(200);
-      client_list.push_back(request->getParam("client-id")->value());
+      client_list.push_back({request->getParam("id", true)->value(),request->getParam("label", true)->value()});
     }
 }
 
@@ -89,24 +89,20 @@ void responses_wifiStauts (AsyncWebServerRequest *request){
 void responses_SSIDlist (AsyncWebServerRequest *request){
     Serial.println("\nGet:\t\tSSID");
     int n = WiFi.scanComplete();
-    // Scanning or do not start yet
-    // so start the service
-    if(n < 0){
-      WiFi.scanDelete();
-      WiFi.scanNetworks(true);
+
+    if(n < 0){     // Scanning or do not start yet
       request->send(202);
       Serial.println("Respond:\t202");
+      WiFi.scanDelete();
+      WiFi.scanNetworks(true);
       return;
     }
 
     Serial.println("No. of result:\t"+String(n));
     String json = "[";
     for (int i = 0; i < n; ++i){
-      Serial.println("\t"+WiFi.SSID(i));
       if(i) {json += ",";};
-      json += "{";
-      json += "\"ssid\":\""+WiFi.SSID(i)+"\"";
-      json += "}";
+      json += "{\"ssid\":\""+WiFi.SSID(i)+"\"}";
     }
     json += "]";
     request->send(200, "application/json", json);
@@ -147,10 +143,10 @@ void responses_getClient (AsyncWebServerRequest *request){
   Serial.println("\nGet:\t\tClient List");
   String json = "[";
   for (int i = 0; i < client_list.size(); ++i){
-    // Name
     if(i) {json += ",";};
     json += "{";
-    json += "\"id\":\""+client_list[i]+"\"";
+    json += "\"id\":\""+client_list[i].id+"\",";
+    json += "\"label\":\""+client_list[i].label+"\"";
     json += "}";
   }
   json += "]";
@@ -162,8 +158,20 @@ void responses_info (AsyncWebServerRequest *request){
   Serial.println("\nGet:\t\tInfo");
   String json = "[{";
   json += "\"id\":\""+DEVICE_ID+"\",";
-  json += "\"label\":\""+((LABEL=="")?MAC_ADDR:LABEL)+"\",";
+  json += "\"label\":\""+LABEL+"\",";
   json += "\"status\":"+String("false"); // NEED TO BE CHANGE!!!!!!!!!!!!!!!!!!!!!!
   json += "}]";
   request->send(200, "application/json", json);
+}
+
+void responses_setLabel (AsyncWebServerRequest *request){
+  Serial.println("\nGet:\t\tSet label");
+  request->send(200);
+  if(request->hasParam("label")){
+    LABEL = request->getParam("label")->value();
+    Serial.println("New label:\t"+LABEL);
+    preferences.begin("setting");
+    preferences.putString("LABEL", LABEL);
+    preferences.end();
+  }
 }
