@@ -12,7 +12,7 @@ bool wifi_client_start_with_setting(){
     if(WiFi.waitForConnectResult()!=WL_CONNECTED){Serial.println("Unable to connect to " + SSID);return false;}
 
     Serial.println("WiFi:\t\tOK");
-    Serial.println("IP address:\t" + String(WiFi.localIP()));
+    Serial.println("IP address:\t" + WiFi.localIP().toString());
 
     // Power Saving Option, lower wifi client power usage
     esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
