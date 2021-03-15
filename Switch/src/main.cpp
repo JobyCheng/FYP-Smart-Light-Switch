@@ -80,9 +80,6 @@ void setup() {
   role = SERVER;
   DEVICE_ID = PRODUCT_NAME;
 
-  Serial.println("ID:\t\t"+DEVICE_ID);
-  Serial.println("label:\t\t"+LABEL);
-
   /*
   ███╗   ██╗███████╗████████╗██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗
   ████╗  ██║██╔════╝╚══██╔══╝██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝
@@ -115,6 +112,8 @@ void setup() {
     }
 
     Serial.println("Role:\t\t"+((role == CLIENT)?String("Client"):String("Server")));
+    Serial.println("ID:\t\t"+DEVICE_ID);
+    Serial.println("label:\t\t"+LABEL);
     
     // mDNS
     mDNS_start(DEVICE_ID);
