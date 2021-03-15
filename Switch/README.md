@@ -53,6 +53,14 @@ If it did not join a wifi network. Assume it is a server.
 |mDNS address|use default name|use id|
 
 ---
+
+## Time schedule method
+use cron-like syntax
+```
+second minute hour day month weekday action
+```
+To simpify the case for user interface, we will change `minute`, `hour` and `action` only.
+
 ## AP Sleep
 Currently ESP32 AP doesn’t support all of the power save feature defined in Wi-Fi specification. To be specific, the AP only caches unicast data for the stations connect to this AP, but doesn’t cache the multicast data for the stations. If stations connected to the ESP32 AP are power save enabled, they may experience multicast packet loss.
 

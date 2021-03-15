@@ -1,17 +1,21 @@
 #include <Arduino.h>
+#include <SPIFFS.h>
 
 #include <Preferences.h>
 #include <HTTPClient.h>
-// Network
-#include <WiFi.h>
-#include "esp_wifi.h"
-#include <ESPmDNS.h>
-#include <DNSServer.h>
-// Webserver
+
+#include "service_mDNS.h"
+#include "service_DNS.h"
+#include "service_Wifi_AP.h"
+#include "service_time_sync.h"
+#include "service_cron.h"
+#include "service_Wifi_client.h"
+
 #include <ESPAsyncWebServer.h>
-#include <SPIFFS.h>
+#include "responses.h"
 
 #include <TaskScheduler.h>
+#include <CronAlarms.h>
 
 /*
 ██╗   ██╗ █████╗ ██████╗ ██╗ █████╗ ██████╗ ██╗     ███████╗
@@ -26,33 +30,23 @@
 // will be used in name of access point, domain name of site
 String PRODUCT_NAME = "esp32";
 
+std::vector<client_entry> client_list;
+
 enum ROLE{SERVER,CLIENT} role;
+String DEVICE_ID;
+String LABEL;
+String MAC_ADDR;
 
 AsyncWebServer web_server(80);
 Preferences preferences;
-
-// DNS
 DNSServer dns_server;
-const uint16_t DNS_PORT = 53;
-
-// Time
-struct tm timeinfo;
-
-// Client Storage
-struct clientList
-{
-  String id;
-  String identifier;
-  bool status;
-};
-const int LIST_SIZE = 16;
-clientList CList [LIST_SIZE]; // resize if needed
-int CListptr = 0;
+extern CronClass Cron;
+extern WiFiClass WiFi;
 
 // Task Schedule
 Scheduler taskSchedule;
-void DNS_reqest_callback();
 Task t_DNS_request(0, TASK_FOREVER, [](){dns_server.processNextRequest();},&taskSchedule);
+Task t_cron(0, TASK_FOREVER, [](){Cron.delay();},&taskSchedule);
 
 /*
 ███████╗██╗   ██╗███╗   ██╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗
@@ -63,12 +57,6 @@ Task t_DNS_request(0, TASK_FOREVER, [](){dns_server.processNextRequest();},&task
 ╚═╝      ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 
 */
-
-void addClient(String id, String identifier = "", bool status = false){
-  // 
-  if (CListptr>=LIST_SIZE){Serial.println("\nMax. No. of client has reached");return;};
-  CList[CListptr++] = {id,identifier,status};
-}
 
 /*
 ███████╗███████╗████████╗██╗   ██╗██████╗
@@ -83,21 +71,14 @@ void setup() {
   Serial.begin(115200);
   // put your setup code here, to run once:
 
-  // Get all the Needed varible;
-  preferences.begin("setting");
-  String SSID = preferences.isKey("SSID")?preferences.getString("SSID"):String();
-  String PASSWD = preferences.isKey("PASSWD")?preferences.getString("PASSWD"):String();
-
-  preferences.end();
-
-  // create a id w/ MAC address.
-  Serial.print("Mac address:\t");
-  String DEVICE_ID = String((unsigned long) ESP.getEfuseMac(),16);
-  Serial.println(DEVICE_ID);
-
-  // Add itself to the client list
-  // id is also the url for connection, so use product_name as the server id
-  addClient(PRODUCT_NAME,"main", false);
+  // create a id with MAC address.
+  MAC_ADDR = String((unsigned long) ESP.getEfuseMac(),16);
+  // get label if any
+  LABEL = preferences.isKey("LABEL")?preferences.getString("LABEL"):String(MAC_ADDR);
+  
+  // Default as server, change to client if it detect a server.
+  role = SERVER;
+  DEVICE_ID = PRODUCT_NAME;
 
   /*
   ███╗   ██╗███████╗████████╗██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗
@@ -110,84 +91,51 @@ void setup() {
   */
 
   // Wifi
-  if(!(SSID == "")){
-    Serial.println("Wifi Conf Found");
-    WiFi.begin(SSID.c_str(), PASSWD.c_str());
-  }
-  // Default as server, change to client if it detect a server.
-  role = SERVER;
+  if (wifi_client_start_with_setting()){
+    // Check if there is any server in the LAN
+    HTTPClient http;
+    http.begin(PRODUCT_NAME+".local/NewDevice");
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    // sending the id to server
+    String data = "[";
+    data += "{\"name\":\"id\",\"value\":\""+DEVICE_ID+"\"}";
+    data += ",";
+    data += "{\"name\":\"label\",\"value\":\""+LABEL+"\"}";
+    data += "]";
+    int httpResponseCode = http.POST(data);
+    Serial.print("Server Response:\t");
+    Serial.println(httpResponseCode);
 
-  if(WiFi.waitForConnectResult()==WL_CONNECTED){
-      Serial.println("WiFi:\t\tOK");
-      Serial.print("IP address:\t");
-      Serial.println(WiFi.localIP());
+    if (httpResponseCode == 200){
+      role = CLIENT;
+      DEVICE_ID=MAC_ADDR;
+    }
 
-      // Check if there is any server in the LAN
-      HTTPClient http;
-      http.begin(PRODUCT_NAME+".local/NewDevice");
-      http.addHeader("Content-Type", "application/json");
-      // sending the id to server
-      String data = "[{id:"+DEVICE_ID+"}]";
-      int httpResponseCode = http.POST(data);
-
-      Serial.print("Server Response:\t");
-      Serial.println(httpResponseCode);
-
-      if (httpResponseCode == 200){
-        role = CLIENT;
-      }
-
-      // Power Saving Option
-      // lower wifi client power usage
-      esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
-
-    }else{
-      Serial.println("WiFi:\t\tFail");
-  }
-
-  Serial.print("Role:\t\t");
-  Serial.println((role == CLIENT)? "Client" : "Server");
-
-  if(WiFi.isConnected()){
+    Serial.println("Role:\t\t"+((role == CLIENT)?String("Client"):String("Server")));
+    Serial.println("ID:\t\t"+DEVICE_ID);
+    Serial.println("label:\t\t"+LABEL);
+    
     // mDNS
-    String domain_name = (role == CLIENT)? DEVICE_ID : PRODUCT_NAME;
-    if(MDNS.begin(domain_name.c_str())) {
-      Serial.println("mDNS:\t\tOK");
-      MDNS.addService("http", "tcp", 80);
-      Serial.println("address:\thttp://" + domain_name + ".local/");
-    }else{
-      Serial.println("mDNS:\t\tFail");
+    mDNS_start(DEVICE_ID);
+
+    if(time_sync_start()){  // Start cron if time sync is check.
+      cron_load_from_setting();
+      t_cron.enable();
     }
 
-    // time
-    configTzTime("UTC+8","asia.pool.ntp.org","time.google.com","pool.ntp.org");
-    // Can use function like time(), localtime();
-    struct tm timeinfo;
-    if(getLocalTime(&timeinfo)){
-      Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
-    }else{
-      Serial.println("Failed to obtain time");
-    }
   }else{
     //Access point
-    IPAddress AP_IP = IPAddress();
-    if (WiFi.softAP((PRODUCT_NAME+"-"+DEVICE_ID).c_str())){
-      Serial.println("WiFi_AP:\tOK");
-      AP_IP = WiFi.softAPIP();
-      Serial.println("Name:\t\t"+PRODUCT_NAME+"-"+DEVICE_ID);
-      Serial.print("AP address:\t");
-      Serial.println(AP_IP);
-    }else{
-      Serial.println("WiFi_AP:\tFail");
-    }
+    wifi_ap_start(PRODUCT_NAME+"-"+MAC_ADDR);
     //DNS
-    if(dns_server.start(DNS_PORT, "*", AP_IP)){
-      Serial.println("DNS:\t\tOK");
-      t_DNS_request.enable();
-    }else{
-      Serial.println("DNS:\t\tFail");
-    }
+    if(DNS_start("*", WiFi.softAPIP())){t_DNS_request.enable();}
   }
+
+  // Add itself to the client list
+  // id is also the url for connection, so use product_name as the server id
+  if (role == SERVER){  // client do not need to use client_list
+    client_list.push_back({DEVICE_ID,LABEL});
+  }
+
 
   /*
   ██╗    ██╗███████╗██████╗ ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗
@@ -215,147 +163,24 @@ void setup() {
 
   */
 
-  web_server.on("/reset",HTTP_GET,[](AsyncWebServerRequest *request){
-    Serial.println("\nReset");
-    request->send(200, "text/plain", "Server recived");
-    Serial.println("Clear all setting");
-    preferences.begin("setting");
-    preferences.clear();
-    preferences.end();
-    ESP.restart();
-   });
+  web_server.on("/reset",HTTP_GET,responses_reset);
+  web_server.on("/restart",HTTP_GET,responses_restart);
 
-   web_server.on("/restart",HTTP_GET,[](AsyncWebServerRequest *request){
-    Serial.println("\nRestart");
-    request->send(200, "text/plain", "Server recived");
-    ESP.restart();
-  });
+  web_server.on("/on",HTTP_GET,responses_on);
+  web_server.on("/off",HTTP_GET,responses_off);
 
-  web_server.on("/NewDevice",HTTP_GET,[](AsyncWebServerRequest *request){
-    Serial.println("\nNewDevice");
-    request->send(200, "text/plain", "Server recived");
-    //addClient();
-  });
-  
-  web_server.on("/on",HTTP_GET,[](AsyncWebServerRequest *request){
-    Serial.println("\nGet:\t\tOn");
-    request->send(200, "text/plain", "Server recived");
-  });
-  
-  web_server.on("/off",HTTP_GET,[](AsyncWebServerRequest *request){
-    Serial.println("\nGet:\t\tOff");
-    request->send(200, "text/plain", "Server recived");
-  });
+  web_server.on("/getSchedule",HTTP_GET,responses_getSchedule);
+  web_server.on("/setSchedule",HTTP_POST,responses_setSchedule);
 
-  web_server.on("/getClient",HTTP_GET,[](AsyncWebServerRequest *request){
-    Serial.println("\nGet:\t\tClient List");
-    String json = "[";
-    for (int i = 0; i < CListptr; ++i){
-      // Name
-      if(i) {json += ",";};
-      json += "{";
-      json += "\"id\":\""+CList[i].id+"\",";
-      json += "\"identifier\":\""+CList[i].identifier+"\",";
-      json += "\"status\":";
-      json += CList[i].status?"true":"false";
-      json += "}";
-    }
-    json += "]";
+  web_server.on("/wifiStauts",HTTP_GET,responses_wifiStauts);
+  web_server.on("/SSIDlist", HTTP_GET,responses_SSIDlist);
+  web_server.on("/wifi_setting",HTTP_POST,responses_wifi_setting);
 
-    request->send(200, "application/json", json);
-  });
+  web_server.on("/NewDevice",HTTP_POST,responses_NewDevice);
+  web_server.on("/getClient",HTTP_GET,responses_getClient);
 
-  web_server.on("/wifiStauts",HTTP_GET,[](AsyncWebServerRequest *request){
-    auto status = WiFi.status();
-    Serial.println("\nGet:\t\tWiFi Status");
-    String message;
-    switch (status){
-      case WL_CONNECTED:
-        message = "Connected";
-        break;
-      case WL_IDLE_STATUS:
-        message = "Connecting...";
-        break;
-      case WL_CONNECT_FAILED:
-        message = "Fail to connect";
-        break;
-      case WL_CONNECTION_LOST:
-        message = "Disconnected";
-        break;
-      case WL_DISCONNECTED:
-        message = "Disconnected";
-        break;
-      case WL_NO_SHIELD:
-        message = "No setting stored";
-        break;
-      default:
-        message = "Others";
-        break;
-      }
-      Serial.println(status);
-      Serial.println(message);
-
-    request->send(200, "text/plain", message);
-   });
-
-  // if  a async WiFi search
-  web_server.on("/SSIDlist", HTTP_GET, [](AsyncWebServerRequest *request){
-    Serial.println("\nGet:\t\tSSID");
-    String json = "[";
-    int n = WiFi.scanComplete();
-    if(n < 0){
-      WiFi.scanDelete();
-      WiFi.scanNetworks(true);
-      request->send(202);
-      Serial.println("Respond:\t202");
-      return;
-    }
-    if(n){
-      Serial.print("No. of result:\t");
-      Serial.println(n);
-      for (int i = 0; i < n; ++i){
-        Serial.println("\t"+WiFi.SSID(i));
-        if(i) {json += ",";};
-        json += "{";
-        json += "\"ssid\":\""+WiFi.SSID(i)+"\"";
-        json += "}";
-      }
-      WiFi.scanDelete();
-      WiFi.scanNetworks(true);
-    }
-    json += "]";
-    Serial.println("Respond:\t200");
-    request->send(200, "application/json", json);
-  });
-
-  web_server.on("/wifi_setting",HTTP_POST,[](AsyncWebServerRequest *request){
-    Serial.println("\nChange wifi setting");
-    
-    int key_total = 3;
-    String keys[key_total] = {"SSID","hidden_SSID","passwd"};
-    for(int i = 0; i<key_total; ++i){
-      if(!(request->hasParam(keys[i], true))){request->send(202, "text/plain", "Missing data: "+keys[i]); return;}
-    }
-
-    String SSID = request->getParam("SSID", true)->value();
-    String hidden_SSID = request->getParam("hidden_SSID", true)->value();
-    String passwd = request->getParam("passwd", true)->value();
-
-    bool data_not_valid = (passwd.length()<8)||(passwd.length()>63)||(SSID=="");
-    if(data_not_valid){request->send(202, "text/plain", "Invaild Data");return;}
-
-    request->send(200, "text/plain", "New setting applied, wait until restart");
-    
-    if (SSID == "hidden"){ SSID=hidden_SSID; }
-    
-    preferences.begin("setting");
-    preferences.putString("SSID", SSID);
-    preferences.putString("PASSWD", passwd);
-    preferences.end();
-    
-    ESP.restart();
-   });
-
+  web_server.on("/info",HTTP_GET,responses_info);
+  web_server.on("/setLabel",HTTP_GET,responses_setLabel);
 
   web_server.begin();
 }
