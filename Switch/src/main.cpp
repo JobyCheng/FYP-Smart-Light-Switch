@@ -238,13 +238,13 @@ void setup() {
   });
   
   web_server.on("/on",HTTP_GET,[](AsyncWebServerRequest *request){
-   Serial.println("\nGet:\t\tOn");
-   request->send(200, "text/plain", "Server recived");
+    Serial.println("\nGet:\t\tOn");
+    request->send(200, "text/plain", "Server recived");
   });
   
   web_server.on("/off",HTTP_GET,[](AsyncWebServerRequest *request){
-   Serial.println("\nGet:\t\tOff");
-   request->send(200, "text/plain", "Server recived");
+    Serial.println("\nGet:\t\tOff");
+    request->send(200, "text/plain", "Server recived");
   });
 
   web_server.on("/getClient",HTTP_GET,[](AsyncWebServerRequest *request){
