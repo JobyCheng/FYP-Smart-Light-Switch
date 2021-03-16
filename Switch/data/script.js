@@ -170,7 +170,7 @@ $(function () {
   }
   getClientList();
   updateWifiStauts();
-  setTimeout(updateSSIDlist,1000);
+  setTimeout(updateSSIDlist,500);
 
   // Add option to Time
   var hour = $("#new-schedule select[name='hour']");
