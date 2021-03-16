@@ -94,15 +94,10 @@ void setup() {
   if (wifi_client_start_with_setting()){
     // Check if there is any server in the LAN
     HTTPClient http;
-    http.begin("http://"+PRODUCT_NAME+".local/NewDevice");
-    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-    // sending the id to server
-    String data = "[";
-    data += "{\"name\":\"id\",\"value\":\""+DEVICE_ID+"\"}";
-    data += ",";
-    data += "{\"name\":\"label\",\"value\":\""+LABEL+"\"}";
-    data += "]";
-    int httpResponseCode = http.POST(data);
+    String url = "http://"+PRODUCT_NAME+".local/NewDevice?id="+DEVICE_ID+"&label="+LABEL;
+    Serial.println("URL:\t\t"+url);
+    http.begin(url);
+    int httpResponseCode = http.GET();
     Serial.print("Server Response:\t");
     Serial.println(httpResponseCode);
 
@@ -176,7 +171,7 @@ void setup() {
   web_server.on("/SSIDlist", HTTP_GET,responses_SSIDlist);
   web_server.on("/wifi_setting",HTTP_POST,responses_wifi_setting);
 
-  web_server.on("/NewDevice",HTTP_POST,responses_NewDevice);
+  web_server.on("/NewDevice",HTTP_GET,responses_NewDevice);
   web_server.on("/getClient",HTTP_GET,responses_getClient);
 
   web_server.on("/info",HTTP_GET,responses_info);
