@@ -5,6 +5,7 @@
 #include <ESPAsyncWebServer.h>
 #include <Preferences.h>
 #include "service_cron.h"
+#include "switch_basic.h"
 
 struct client_entry{
     String id;
@@ -22,6 +23,7 @@ void responses_restart (AsyncWebServerRequest *request);
 void responses_NewDevice (AsyncWebServerRequest *request);
 void responses_on (AsyncWebServerRequest *request);
 void responses_off (AsyncWebServerRequest *request);
+void responses_recalibrate (AsyncWebServerRequest *request);
 void responses_getSchedule (AsyncWebServerRequest *request);
 void responses_setSchedule (AsyncWebServerRequest *request);
 void responses_wifiStauts (AsyncWebServerRequest *request);

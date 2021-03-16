@@ -26,11 +26,19 @@ void responses_NewDevice (AsyncWebServerRequest *request){
 
 void responses_on (AsyncWebServerRequest *request){
     Serial.println("\nGet:\t\tOn");
+    on();
     request->send(200);
 }
 
 void responses_off (AsyncWebServerRequest *request){
     Serial.println("\nGet:\t\tOff");
+    off();
+    request->send(200);
+}
+
+void responses_recalibrate (AsyncWebServerRequest *request){
+    Serial.println("\nGet:\t\trecalibrate");
+    recalibrate();
     request->send(200);
 }
 

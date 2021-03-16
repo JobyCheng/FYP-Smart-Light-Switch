@@ -94,7 +94,7 @@ void setup() {
   if (wifi_client_start_with_setting()){
     // Check if there is any server in the LAN
     HTTPClient http;
-    http.begin(PRODUCT_NAME+".local/NewDevice");
+    http.begin("http://"+PRODUCT_NAME+".local/NewDevice");
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     // sending the id to server
     String data = "[";
