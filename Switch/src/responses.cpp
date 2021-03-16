@@ -18,9 +18,9 @@ void responses_restart (AsyncWebServerRequest *request){
 
 void responses_NewDevice (AsyncWebServerRequest *request){
     Serial.println("\nNewDevice");
-    if((request->hasParam("id", true))&&request->hasParam("label", true)){
+    if((request->hasParam("id"))&&request->hasParam("label")){
       request->send(200);
-      client_list.push_back({request->getParam("id", true)->value(),request->getParam("label", true)->value()});
+      client_list.push_back({request->getParam("id")->value(),request->getParam("label")->value()});
     }
 }
 
