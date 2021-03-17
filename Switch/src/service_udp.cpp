@@ -10,8 +10,17 @@ void onPacketCallBack(AsyncUDPPacket packet)
   Serial.println("ID:\t\t"+id);
   Serial.println("LABEL:\t\t"+label);
 
-  client_list.push_back({id,label});
-
+  bool existed = false;
+  for (int i = 0; i < client_list.size(); ++i){
+    if (id == client_list[i].id){
+      existed = true;
+      client_list[i].label=label;
+    }
+  }
+  if (!existed){
+    client_list.push_back({id,label});
+  }
+  
   AsyncUDPMessage message;
   message.write((uint8_t *)"Recived",8);
   packet.send(message);
