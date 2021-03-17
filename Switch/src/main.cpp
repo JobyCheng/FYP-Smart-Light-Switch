@@ -10,6 +10,8 @@
 #include "service_time_sync.h"
 #include "service_cron.h"
 #include "service_Wifi_client.h"
+#include "service_udp.h"
+#include "struct_client_entry.h"
 
 #include <ESPAsyncWebServer.h>
 #include "responses.h"
@@ -28,7 +30,7 @@
 */
 // product name
 // will be used in name of access point, domain name of site
-/**
+
 String PRODUCT_NAME = "esp32";
 
 std::vector<client_entry> client_list;
@@ -43,12 +45,14 @@ Preferences preferences;
 DNSServer dns_server;
 extern CronClass Cron;
 extern WiFiClass WiFi;
+WiFiUDP udp_sender;
+AsyncUDP udp_reciver;
 
 // Task Schedule
 Scheduler taskSchedule;
-Task t_DNS_request(0, TASK_FOREVER, [](){dns_server.processNextRequest();},&taskSchedule);
-Task t_cron(0, TASK_FOREVER, [](){Cron.delay();},&taskSchedule);
-**/
+Task t_DNS_request(1, TASK_FOREVER, [](){dns_server.processNextRequest();},&taskSchedule);
+Task t_cron(1, TASK_FOREVER, [](){Cron.delay();},&taskSchedule);
+
 
 /*
 ███████╗██╗   ██╗███╗   ██╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗
@@ -78,7 +82,7 @@ void setup() {
   pinMode(EN, OUTPUT);
   touchAttachInterrupt(EN, T8wasActivated, threshold);
   touchAttachInterrupt(T9, T9wasActivated, threshold);
-  /**
+  
   // create a id with MAC address.
   MAC_ADDR = String((unsigned long) ESP.getEfuseMac(),16);
   // get label if any
@@ -95,21 +99,14 @@ void setup() {
   ██║╚██╗██║██╔══╝     ██║   ██║███╗██║██║   ██║██╔══██╗██╔═██╗
   ██║ ╚████║███████╗   ██║   ╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗
   ╚═╝  ╚═══╝╚══════╝   ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
-
+  */
   
 
   // Wifi
   if (wifi_client_start_with_setting()){
     // Check if there is any server in the LAN
-    HTTPClient http;
-    String url = "http://"+PRODUCT_NAME+".local/NewDevice?id="+DEVICE_ID+"&label="+LABEL;
-    Serial.println("URL:\t\t"+url);
-    http.begin(url);
-    int httpResponseCode = http.GET();
-    Serial.print("Server Response:\t");
-    Serial.println(httpResponseCode);
-
-    if (httpResponseCode == 200){
+    if(send_udp_message(WiFi.broadcastIP(),MAC_ADDR+"|"+LABEL, 2000)){
+      Serial.println("Server found");
       role = CLIENT;
       DEVICE_ID=MAC_ADDR;
     }
@@ -124,6 +121,10 @@ void setup() {
     if(time_sync_start()){  // Start cron if time sync is check.
       cron_load_from_setting();
       t_cron.enable();
+    }
+    
+    if(role==SERVER){
+      udp_server_init();  //Start udp if it is a server
     }
 
   }else{
@@ -147,7 +148,7 @@ void setup() {
   ██║███╗██║██╔══╝  ██╔══██╗╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗
   ╚███╔███╔╝███████╗██████╔╝███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║
    ╚══╝╚══╝ ╚══════╝╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
-
+  */
   
   if(!SPIFFS.begin(true)){
     Serial.println("An Error has occurred while mounting SPIFFS");
@@ -163,7 +164,7 @@ void setup() {
   ██╔══██╗██╔══╝  ██║▄▄ ██║██║   ██║██╔══╝  ╚════██║   ██║
   ██║  ██║███████╗╚██████╔╝╚██████╔╝███████╗███████║   ██║
   ╚═╝  ╚═╝╚══════╝ ╚══▀▀═╝  ╚═════╝ ╚══════╝╚══════╝   ╚═╝
-
+  */
 
 
   web_server.on("/reset",HTTP_GET,responses_reset);
@@ -179,14 +180,13 @@ void setup() {
   web_server.on("/SSIDlist", HTTP_GET,responses_SSIDlist);
   web_server.on("/wifi_setting",HTTP_POST,responses_wifi_setting);
 
-  web_server.on("/NewDevice",HTTP_GET,responses_NewDevice);
   web_server.on("/getClient",HTTP_GET,responses_getClient);
 
   web_server.on("/info",HTTP_GET,responses_info);
   web_server.on("/setLabel",HTTP_GET,responses_setLabel);
 
   web_server.begin();
-**/
+
 }
 
 /*
@@ -200,5 +200,5 @@ void setup() {
 */
 void loop() {
   // put your main code here, to run repeatedly:
-    //taskSchedule.execute();
+    taskSchedule.execute();
 }
