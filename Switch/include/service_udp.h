@@ -4,6 +4,7 @@
 #include "Arduino.h"
 #include "AsyncUDP.h"
 #include "WiFiUDP.h"
+#include "WiFi.h"
 #include "vector"
 #include "struct_client_entry.h"
 
@@ -15,6 +16,6 @@ extern std::vector<client_entry> client_list;
 
 void onPacketCallBack(AsyncUDPPacket packet);
 void udp_server_init();
-bool send_udp_message(IPAddress boardcast_IP, String data, int timeout);
+bool send_udp_message(String data, int timeout);
 
 #endif

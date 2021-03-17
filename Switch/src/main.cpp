@@ -98,7 +98,7 @@ void setup() {
   // Wifi
   if (wifi_client_start_with_setting()){
     // Check if there is any server in the LAN
-    if(send_udp_message(WiFi.broadcastIP(),MAC_ADDR+","+LABEL, 2000)){
+    if(send_udp_message(MAC_ADDR+","+LABEL, 2000)){
       Serial.println("Server found");
       role = CLIENT;
       DEVICE_ID=MAC_ADDR;
