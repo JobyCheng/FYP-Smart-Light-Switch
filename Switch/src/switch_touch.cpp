@@ -1,49 +1,24 @@
 #include "switch_touch.h"
 
+bool triggeredT8 = false;
+bool triggeredT9 = false;
 void IRAM_ATTR T8wasActivated() { triggeredT8 = true; }
 void IRAM_ATTR T9wasActivated() { triggeredT9 = true; }
 
+const int threshold = 20;
+
 bool touchDelayComp(unsigned long lastTouch){
-  if (millis() - lastTouch < touchDelay) return false;
-  return true;
+    if (millis() - lastTouch < touchDelay) return false;
+    return true;
 }
 
-void touch_manual() {
-  if (triggeredT8){
-    triggeredT8 = false;
-    if (touchDelayComp(lastT8)){
-      Serial.println("T8");
-      //On();
-      lastT8 = millis();
-    }
-  }
-
-  if (triggeredT9){
-    triggeredT9 = false;
-    if (touchDelayComp(lastT9)){
-      Serial.println("T9");
-      //Off();
-      lastT9 = millis();
-    }
-  }
+bool touchedT8(){
+    if(touchRead(T8) < threshold) return true;
+    else return false;
 }
 
-void touch_auto() {
-  if (triggeredT8){
-    triggeredT8 = false;
-    if (touchDelayComp(lastT8)){
-      Serial.println("T8");
-      //On();
-      lastT8 = millis();
-    }
-  }
-
-  if (triggeredT9){
-    triggeredT9 = false;
-    if (touchDelayComp(lastT9)){
-      Serial.println("T9");
-      //Off();
-      lastT9 = millis();
-    }
-  }
+bool touchedT9(){
+    if(touchRead(T8) < threshold) return true;
+    return false;
 }
+

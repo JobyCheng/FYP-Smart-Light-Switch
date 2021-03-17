@@ -56,29 +56,29 @@ void gyro_queryOutputMode(){
     delay(1000);
 }
 
-void gyro_getRoll(){
+float gyro_getRoll(){
     while (Serial2.available()){
-    Re_buf[counter]=(unsigned char)Serial2.read();
+    Re_buf[counter] = (unsigned char)Serial2.read();
     //Serial.println(Re_buf[counter]);
-    if(counter==0&&Re_buf[0]!=0x5A){
+    if(counter == 0&&Re_buf[0]!=0x5A){
         Serial.print("gyro data error");
         break;
     } 
     counter++; 
-    if(counter==11){    
-       counter=0;                 //重新赋值，准备下一帧数据的接收 
-       sign=1;
+    if(counter == 11){    
+       counter = 0;                 //重新赋值，准备下一帧数据的接收 
+       sign = 1;
        break;
     }
   }
   if(sign){  
      sign=0;
-     if(Re_buf[0]==0x5A&&Re_buf[1]==0x5A){
-        roll=(Re_buf[4]<<8|Re_buf[5])/100;
+     if(Re_buf[0] == 0x5A&&Re_buf[1] == 0x5A){
+        roll = (Re_buf[4]<<8 | Re_buf[5])/100.0;
         Serial.print("roll: ");
-        Serial.println(roll, DEC);
-        delay(100);
+        Serial.println(roll, DEC); 
      }
   }
+  return roll;
 }
 

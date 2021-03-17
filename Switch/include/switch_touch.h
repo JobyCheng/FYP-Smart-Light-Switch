@@ -6,6 +6,8 @@
 extern const int threshold;
 extern bool triggeredT8;
 extern bool triggeredT9;
+extern bool touchedT8();
+extern bool touchedT9();
 
 extern const long touchDelay; //ms
 

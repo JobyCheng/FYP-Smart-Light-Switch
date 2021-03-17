@@ -43,14 +43,14 @@ bool send_udp_message(IPAddress boardcast_IP, String data, int timeout){
   unsigned long currentTime = millis();
   while(millis()<currentTime+timeout){
     int packetSize = udp_sender.parsePacket();
-    if (packetSize){
+    if (packetSize){/**
       char buf[packetSize];
       udp_sender.read(buf, packetSize);
       String recived_data = String(buf).substring(0,packetSize);
-      if (recived_data == "Recived"){
+      if (recived_data == "Recived"){**/
         udp_sender.stop();
         return true;
-      }
+      //}
     }
   }
   return false;

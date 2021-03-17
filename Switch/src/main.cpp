@@ -77,11 +77,11 @@ void setup() {
   Serial.begin(115200);
   // put your setup code here, to run once:
 
-  //pinMode(AIN1, OUTPUT);
-  //pinMode(AIN2, OUTPUT);
-  //pinMode(EN, OUTPUT);
-  //touchAttachInterrupt(EN, T8wasActivated, threshold);
-  //touchAttachInterrupt(T9, T9wasActivated, threshold);
+  pinMode(AIN1, OUTPUT);
+  pinMode(AIN2, OUTPUT);
+  pinMode(EN, OUTPUT);
+  touchAttachInterrupt(EN, T8wasActivated, threshold);
+  touchAttachInterrupt(T9, T9wasActivated, threshold);
   
   // create a id with MAC address.
   MAC_ADDR = String((unsigned long) ESP.getEfuseMac(),16);
@@ -105,7 +105,7 @@ void setup() {
   // Wifi
   if (wifi_client_start_with_setting()){
     // Check if there is any server in the LAN
-    if(send_udp_message(WiFi.broadcastIP(),MAC_ADDR+","+LABEL, 2000)){
+    if(send_udp_message(WiFi.broadcastIP(),MAC_ADDR+","+LABEL, 5000)){
       Serial.println("Server found");
       role = CLIENT;
       DEVICE_ID=MAC_ADDR;
