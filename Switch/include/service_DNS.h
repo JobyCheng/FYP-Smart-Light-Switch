@@ -3,7 +3,7 @@
 
 #include <DNSServer.h>
 
-const uint16_t DNS_PORT = 53;
+#define DNS_PORT 53
 
 extern DNSServer dns_server;
 

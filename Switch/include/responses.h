@@ -5,11 +5,7 @@
 #include <ESPAsyncWebServer.h>
 #include <Preferences.h>
 #include "service_cron.h"
-
-struct client_entry{
-    String id;
-    String label;
-};
+#include "struct_client_entry.h"
 
 extern Preferences preferences;
 extern std::vector<client_entry> client_list;
@@ -19,7 +15,6 @@ extern String MAC_ADDR;
 
 void responses_reset (AsyncWebServerRequest *request);
 void responses_restart (AsyncWebServerRequest *request);
-void responses_NewDevice (AsyncWebServerRequest *request);
 void responses_on (AsyncWebServerRequest *request);
 void responses_off (AsyncWebServerRequest *request);
 void responses_getSchedule (AsyncWebServerRequest *request);

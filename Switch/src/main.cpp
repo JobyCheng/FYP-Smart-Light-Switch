@@ -10,6 +10,8 @@
 #include "service_time_sync.h"
 #include "service_cron.h"
 #include "service_Wifi_client.h"
+#include "service_udp.h"
+#include "struct_client_entry.h"
 
 #include <ESPAsyncWebServer.h>
 #include "responses.h"
@@ -42,11 +44,14 @@ Preferences preferences;
 DNSServer dns_server;
 extern CronClass Cron;
 extern WiFiClass WiFi;
+WiFiUDP udp_sender;
+AsyncUDP udp_reciver;
 
 // Task Schedule
 Scheduler taskSchedule;
-Task t_DNS_request(0, TASK_FOREVER, [](){dns_server.processNextRequest();},&taskSchedule);
-Task t_cron(0, TASK_FOREVER, [](){Cron.delay();},&taskSchedule);
+Task t_DNS_request(1, TASK_FOREVER, [](){dns_server.processNextRequest();},&taskSchedule);
+Task t_cron(1, TASK_FOREVER, [](){Cron.delay();},&taskSchedule);
+
 
 /*
 ███████╗██╗   ██╗███╗   ██╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗
@@ -93,15 +98,8 @@ void setup() {
   // Wifi
   if (wifi_client_start_with_setting()){
     // Check if there is any server in the LAN
-    HTTPClient http;
-    String url = "http://"+PRODUCT_NAME+".local/NewDevice?id="+DEVICE_ID+"&label="+LABEL;
-    Serial.println("URL:\t\t"+url);
-    http.begin(url);
-    int httpResponseCode = http.GET();
-    Serial.print("Server Response:\t");
-    Serial.println(httpResponseCode);
-
-    if (httpResponseCode == 200){
+    if(send_udp_message(WiFi.broadcastIP(),MAC_ADDR+"|"+LABEL, 2000)){
+      Serial.println("Server found");
       role = CLIENT;
       DEVICE_ID=MAC_ADDR;
     }
@@ -116,6 +114,10 @@ void setup() {
     if(time_sync_start()){  // Start cron if time sync is check.
       cron_load_from_setting();
       t_cron.enable();
+    }
+    
+    if(role==SERVER){
+      udp_server_init();  //Start udp if it is a server
     }
 
   }else{
@@ -171,7 +173,6 @@ void setup() {
   web_server.on("/SSIDlist", HTTP_GET,responses_SSIDlist);
   web_server.on("/wifi_setting",HTTP_POST,responses_wifi_setting);
 
-  web_server.on("/NewDevice",HTTP_GET,responses_NewDevice);
   web_server.on("/getClient",HTTP_GET,responses_getClient);
 
   web_server.on("/info",HTTP_GET,responses_info);
