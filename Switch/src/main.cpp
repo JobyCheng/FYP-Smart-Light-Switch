@@ -28,6 +28,7 @@
 */
 // product name
 // will be used in name of access point, domain name of site
+/**
 String PRODUCT_NAME = "esp32";
 
 std::vector<client_entry> client_list;
@@ -47,6 +48,7 @@ extern WiFiClass WiFi;
 Scheduler taskSchedule;
 Task t_DNS_request(0, TASK_FOREVER, [](){dns_server.processNextRequest();},&taskSchedule);
 Task t_cron(0, TASK_FOREVER, [](){Cron.delay();},&taskSchedule);
+**/
 
 /*
 ███████╗██╗   ██╗███╗   ██╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗
@@ -71,6 +73,12 @@ void setup() {
   Serial.begin(115200);
   // put your setup code here, to run once:
 
+  pinMode(AIN1, OUTPUT);
+  pinMode(AIN2, OUTPUT);
+  pinMode(EN, OUTPUT);
+  touchAttachInterrupt(EN, T8wasActivated, threshold);
+  touchAttachInterrupt(T9, T9wasActivated, threshold);
+  /**
   // create a id with MAC address.
   MAC_ADDR = String((unsigned long) ESP.getEfuseMac(),16);
   // get label if any
@@ -88,7 +96,7 @@ void setup() {
   ██║ ╚████║███████╗   ██║   ╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗
   ╚═╝  ╚═══╝╚══════╝   ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
 
-  */
+  
 
   // Wifi
   if (wifi_client_start_with_setting()){
@@ -140,7 +148,7 @@ void setup() {
   ╚███╔███╔╝███████╗██████╔╝███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║
    ╚══╝╚══╝ ╚══════╝╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
 
-  */
+  
   if(!SPIFFS.begin(true)){
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
@@ -156,7 +164,7 @@ void setup() {
   ██║  ██║███████╗╚██████╔╝╚██████╔╝███████╗███████║   ██║
   ╚═╝  ╚═╝╚══════╝ ╚══▀▀═╝  ╚═════╝ ╚══════╝╚══════╝   ╚═╝
 
-  */
+
 
   web_server.on("/reset",HTTP_GET,responses_reset);
   web_server.on("/restart",HTTP_GET,responses_restart);
@@ -178,6 +186,7 @@ void setup() {
   web_server.on("/setLabel",HTTP_GET,responses_setLabel);
 
   web_server.begin();
+**/
 }
 
 /*
@@ -191,5 +200,5 @@ void setup() {
 */
 void loop() {
   // put your main code here, to run repeatedly:
-    taskSchedule.execute();
+    //taskSchedule.execute();
 }

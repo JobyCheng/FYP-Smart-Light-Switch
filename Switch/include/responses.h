@@ -5,7 +5,7 @@
 #include <ESPAsyncWebServer.h>
 #include <Preferences.h>
 #include "service_cron.h"
-#include "switch_basic.h"
+#include "switch_motor.h"
 
 struct client_entry{
     String id;

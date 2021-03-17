@@ -1,4 +1,4 @@
-#include "switch_basic.h"
+#include "switch_motor.h"
 
 void on(){
     digitalWrite(EN, HIGH);
