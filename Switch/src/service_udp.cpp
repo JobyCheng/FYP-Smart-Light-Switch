@@ -10,20 +10,23 @@ void onPacketCallBack(AsyncUDPPacket packet)
   Serial.println("ID:\t\t"+id);
   Serial.println("LABEL:\t\t"+label);
 
+  // Check before adding to list
   bool existed = false;
   for (int i = 0; i < client_list.size(); ++i){
     if (id == client_list[i].id){
       existed = true;
       client_list[i].label=label;
+      break;
     }
   }
   if (!existed){
     client_list.push_back({id,label});
   }
-  
-  AsyncUDPMessage message;
-  message.write((uint8_t *)"Recived",8);
-  packet.send(message);
+
+  udp_sender.begin(UDP_PORT);
+  udp_sender.beginPacket(WiFi.broadcastIP(),UDP_PORT);
+  udp_sender.print("Recived");
+  udp_sender.endPacket();
 }
 
 void udp_server_init(){
@@ -34,10 +37,10 @@ void udp_server_init(){
   Serial.println("UDP Server:\tOK");
 }
 
-bool send_udp_message(IPAddress boardcast_IP, String data, int timeout){
+bool send_udp_message(String data, int timeout){
   // Use synchronous method
   udp_sender.begin(UDP_PORT);
-  udp_sender.beginPacket(boardcast_IP,8000);
+  udp_sender.beginPacket(WiFi.broadcastIP(),UDP_PORT);
   udp_sender.print(data);
   udp_sender.endPacket();
   unsigned long currentTime = millis();
