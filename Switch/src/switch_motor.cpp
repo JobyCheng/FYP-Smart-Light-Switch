@@ -1,5 +1,9 @@
 #include "switch_motor.h"
 
+const int AIN1 = 25; 
+const int AIN2 = 26; 
+const int EN = 27;
+
 void on(){
     digitalWrite(EN, HIGH);
     //ad(T))

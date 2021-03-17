@@ -6,11 +6,11 @@
 #include "switch_touch.h"
 
 //motor control pins
-extern const int AIN1 = 25; 
-extern const int AIN2 = 26; 
-extern const int EN = 27; 
+extern const int AIN1; 
+extern const int AIN2; 
+extern const int EN; 
 
-//
+
 void on();
 void off();
 void recalibrate();

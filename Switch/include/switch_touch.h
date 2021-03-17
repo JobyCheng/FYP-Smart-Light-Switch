@@ -3,16 +3,16 @@
 
 #include <Arduino.h>
 
-const int threshold = 20;
-bool triggeredT8 = false;
-bool triggeredT9 = false;
+extern const int threshold;
+extern bool triggeredT8;
+extern bool triggeredT9;
 
-const long touchDelay = 350; //ms
+extern const long touchDelay; //ms
 
-volatile unsigned long lastT8 = 0;
-volatile unsigned long lastT9 = 0;
+extern volatile unsigned long lastT8;
+extern volatile unsigned long lastT9;
 
-bool touchDelayComp(unsigned long);
+extern bool touchDelayComp(unsigned long);
 
 void IRAM_ATTR T8wasActivated();
 void IRAM_ATTR T9wasActivated();
