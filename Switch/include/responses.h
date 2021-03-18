@@ -26,5 +26,6 @@ void responses_wifi_setting (AsyncWebServerRequest *request);
 void responses_getClient (AsyncWebServerRequest *request);
 void responses_info (AsyncWebServerRequest *request);
 void responses_setLabel (AsyncWebServerRequest *request);
+void responses_calibration (AsyncWebServerRequest *request);
 
 #endif
