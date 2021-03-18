@@ -13,6 +13,7 @@ extern std::vector<client_entry> client_list;
 extern String DEVICE_ID;
 extern String LABEL;
 extern String MAC_ADDR;
+extern String PRODUCT_NAME;
 
 void responses_reset (AsyncWebServerRequest *request);
 void responses_restart (AsyncWebServerRequest *request);
