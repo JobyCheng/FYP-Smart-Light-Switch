@@ -161,7 +161,10 @@ void responses_info (AsyncWebServerRequest *request){
   json += "\"label\":\""+LABEL+"\",";
   json += "\"status\":"+String("false"); // NEED TO BE CHANGE!!!!!!!!!!!!!!!!!!!!!!
   json += "}]";
-  request->send(200, "application/json", json);
+  
+  AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+  response->addHeader("Access-Control-Allow-Origin","http://"+PRODUCT_NAME+".local/");
+  request->send(response);
 }
 
 void responses_setLabel (AsyncWebServerRequest *request){
