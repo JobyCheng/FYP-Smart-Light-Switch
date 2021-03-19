@@ -37,7 +37,7 @@ void touch_manual() {
   if (triggeredT8){
     triggeredT8 = false;
     if (touchDelayComp(lastT8)){
-      Serial.println("T8");
+      Serial.println("turn clkwise");
       //On();
       lastT8 = millis();
     }
@@ -46,7 +46,7 @@ void touch_manual() {
   if (triggeredT9){
     triggeredT9 = false;
     if (touchDelayComp(lastT9)){
-      Serial.println("T9");
+      Serial.println("turn anticlkwise");
       //Off();
       lastT9 = millis();
     }

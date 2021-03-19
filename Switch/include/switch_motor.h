@@ -10,6 +10,9 @@ extern const int AIN1;
 extern const int AIN2; 
 extern const int EN; 
 
+extern float T8roll;
+extern float T9roll;
+
 
 void on();
 void off();

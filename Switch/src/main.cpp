@@ -80,8 +80,12 @@ void setup() {
   pinMode(AIN1, OUTPUT);
   pinMode(AIN2, OUTPUT);
   pinMode(EN, OUTPUT);
-  touchAttachInterrupt(EN, T8wasActivated, threshold);
+
+  touchAttachInterrupt(T8, T8wasActivated, threshold);
   touchAttachInterrupt(T9, T9wasActivated, threshold);
+
+  gyro_init();
+
   
   // create a id with MAC address.
   MAC_ADDR = String((unsigned long) ESP.getEfuseMac(),16);
