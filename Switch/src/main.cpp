@@ -44,13 +44,14 @@ Preferences preferences;
 DNSServer dns_server;
 extern CronClass Cron;
 extern WiFiClass WiFi;
-WiFiUDP udp_sender;
-AsyncUDP udp_reciver;
+WiFiUDP udp;
 
 // Task Schedule
 Scheduler taskSchedule;
 Task t_DNS_request(1, TASK_FOREVER, [](){dns_server.processNextRequest();},&taskSchedule);
 Task t_cron(1, TASK_FOREVER, [](){Cron.delay();},&taskSchedule);
+Task t_upd_server(1, TASK_FOREVER, [](){udp_handle_next_packet();},&taskSchedule);
+Task t_upd_boardcast(1000*60*5, TASK_FOREVER, [](){udp_boardcast_message();},&taskSchedule);
 
 /*
 ███████╗███████╗████████╗██╗   ██╗██████╗
@@ -87,10 +88,17 @@ void setup() {
   // Wifi
   if (wifi_client_start_with_setting()){
     // Check if there is any server in the LAN
-    if(send_udp_message(MAC_ADDR+","+LABEL, 2000)){
-      Serial.println("Server found");
-      role = CLIENT;
-      DEVICE_ID=MAC_ADDR;
+    if (udp_start()){
+      if(udp_checkServer(2000)){
+        Serial.println("Server found");
+        udp_stop();
+        role = CLIENT;
+        DEVICE_ID=MAC_ADDR;
+        t_upd_boardcast.enable();
+      }else{
+        // keep listening to port 8000
+        t_upd_server.enable();
+      }
     }
 
     Serial.println("Role:\t\t"+((role == CLIENT)?String("Client"):String("Server")));
@@ -105,10 +113,6 @@ void setup() {
       t_cron.enable();
     }
     
-    if(role==SERVER){
-      udp_server_init();  //Start udp if it is a server
-    }
-
   }else{
     //Access point
     wifi_ap_start(PRODUCT_NAME+"-"+MAC_ADDR);
