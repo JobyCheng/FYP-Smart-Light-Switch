@@ -64,6 +64,7 @@ function addClient(data){
     $("#switchList").append('\
       <tr id='+item.id+'>\
       <td><a>'+item.label+'</a><button style="float: right;" onclick="editLabel(this)">edit label</button></td>\
+      <td><button onclick="doCalibration(this)">calibration</button></td>\
       <td>\
         <label class="switch">\
           <input type="checkbox">\
@@ -80,6 +81,10 @@ function addClient(data){
       }
     );
   }
+}
+
+function doCalibration(item){
+  $.get("http://"+$(item).parents("tr").prop("id")+".local/calibration");
 }
 
 function editLabel(item){

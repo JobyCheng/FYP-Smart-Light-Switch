@@ -189,6 +189,8 @@ void setup() {
   web_server.on("/info",HTTP_GET,responses_info);
   web_server.on("/setLabel",HTTP_GET,responses_setLabel);
 
+  web_server.on("/calibration",HTTP_GET,responses_calibration);  
+
   web_server.begin();
 
 }

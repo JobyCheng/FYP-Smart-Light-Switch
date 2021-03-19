@@ -186,3 +186,8 @@ void responses_setLabel (AsyncWebServerRequest *request){
     preferences.end();
   }
 }
+
+void responses_calibration (AsyncWebServerRequest *request){
+    Serial.println("\nGet:\t\tCalibration");
+    request->send(200);
+}
