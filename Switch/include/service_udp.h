@@ -2,7 +2,6 @@
 #define SERVICE_UDP_H
 
 #include "Arduino.h"
-#include "AsyncUDP.h"
 #include "WiFiUDP.h"
 #include "WiFi.h"
 #include "vector"
@@ -10,12 +9,15 @@
 
 #define UDP_PORT 8000
 
-extern WiFiUDP udp_sender;
-extern AsyncUDP udp_reciver;
+extern WiFiUDP udp;
 extern std::vector<client_entry> client_list;
+extern String LABEL;
+extern String MAC_ADDR;
 
-void onPacketCallBack(AsyncUDPPacket packet);
-void udp_server_init();
-bool send_udp_message(String data, int timeout);
+bool udp_start();
+void udp_stop();
+bool udp_checkServer(int timeout);
+void udp_boardcast_message();
+void udp_handle_next_packet();
 
 #endif

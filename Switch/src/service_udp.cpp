@@ -1,12 +1,55 @@
 #include "service_udp.h"
 
-void onPacketCallBack(AsyncUDPPacket packet)
+bool udp_start(){
+  if(!udp.begin(UDP_PORT)){
+    Serial.println("UDP listening fail");
+    return false;
+  }
+  Serial.println("UDP listening on Port "+String(UDP_PORT));
+  return true;
+}
+
+void udp_stop(){
+    udp.stop();
+}
+
+void udp_boardcast_message(){
+  udp.beginPacket(WiFi.broadcastIP(),UDP_PORT);
+  udp.print(MAC_ADDR+","+LABEL);
+  udp.endPacket();
+}
+
+bool udp_checkServer(int timeout){
+  // Use synchronous method
+  udp_boardcast_message();
+  unsigned long currentTime = millis();
+  while(millis()<currentTime+timeout){
+    int packetSize = udp.parsePacket();
+    if (!packetSize){continue;}
+
+    char buf[packetSize];
+    udp.read(buf, packetSize);
+    String recived_data = String(buf).substring(0,packetSize);
+    
+    if (recived_data == "Recived"){
+      return true;
+    }
+  }
+  return false;
+}
+
+void udp_handle_next_packet()
 {
+  int packetSize = udp.parsePacket();
+  if (!packetSize){return;}
+  
   Serial.println("\nNew Client");
-  String data = String((char *)packet.data()).substring(0,packet.length());
-  int seprater = data.indexOf(",");
-  String id = data.substring(0,seprater);
-  String label = data.substring(seprater+1,data.length());
+  char buf[packetSize];
+  udp.read(buf, packetSize);
+  String recived_data = String(buf).substring(0,packetSize);
+  int seprater = recived_data.indexOf(",");
+  String id = recived_data.substring(0,seprater);
+  String label = recived_data.substring(seprater+1,recived_data.length());
   Serial.println("ID:\t\t"+id);
   Serial.println("LABEL:\t\t"+label);
 
@@ -23,38 +66,8 @@ void onPacketCallBack(AsyncUDPPacket packet)
     client_list.push_back({id,label});
   }
 
-  udp_sender.begin(UDP_PORT);
-  udp_sender.beginPacket(WiFi.broadcastIP(),UDP_PORT);
-  udp_sender.print("Recived");
-  udp_sender.endPacket();
-}
-
-void udp_server_init(){
-  if(!udp_reciver.listen(UDP_PORT)){
-    Serial.println("UDP Server:\tFail");
-  }
-  udp_reciver.onPacket(onPacketCallBack);
-  Serial.println("UDP Server:\tOK");
-}
-
-bool send_udp_message(String data, int timeout){
-  // Use synchronous method
-  udp_sender.begin(UDP_PORT);
-  udp_sender.beginPacket(WiFi.broadcastIP(),UDP_PORT);
-  udp_sender.print(data);
-  udp_sender.endPacket();
-  unsigned long currentTime = millis();
-  while(millis()<currentTime+timeout){
-    int packetSize = udp_sender.parsePacket();
-    if (packetSize){/**
-      char buf[packetSize];
-      udp_sender.read(buf, packetSize);
-      String recived_data = String(buf).substring(0,packetSize);
-      if (recived_data == "Recived"){**/
-        udp_sender.stop();
-        return true;
-      //}
-    }
-  }
-  return false;
+  udp.begin(UDP_PORT);
+  udp.beginPacket(udp.remoteIP(),udp.remotePort());
+  udp.print("Recived");
+  udp.endPacket();
 }
