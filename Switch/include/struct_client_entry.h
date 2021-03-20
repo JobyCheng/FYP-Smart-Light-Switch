@@ -4,6 +4,7 @@
 struct client_entry{
     String id;
     String label;
+    IPAddress address;
 };
 
 #endif

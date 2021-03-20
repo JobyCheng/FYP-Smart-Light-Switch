@@ -5,6 +5,7 @@
 #include <ESPAsyncWebServer.h>
 #include <Preferences.h>
 #include "service_cron.h"
+#include "service_udp.h"
 #include "struct_client_entry.h"
 #include "switch_motor.h"
 
@@ -12,7 +13,6 @@ extern Preferences preferences;
 extern std::vector<client_entry> client_list;
 extern String DEVICE_ID;
 extern String LABEL;
-extern String MAC_ADDR;
 extern String PRODUCT_NAME;
 
 void responses_reset (AsyncWebServerRequest *request);
@@ -26,7 +26,7 @@ void responses_wifiStauts (AsyncWebServerRequest *request);
 void responses_SSIDlist (AsyncWebServerRequest *request);
 void responses_wifi_setting (AsyncWebServerRequest *request);
 void responses_getClient (AsyncWebServerRequest *request);
-void responses_info (AsyncWebServerRequest *request);
+void responses_status (AsyncWebServerRequest *request);
 void responses_setLabel (AsyncWebServerRequest *request);
 void responses_calibration (AsyncWebServerRequest *request);
 
