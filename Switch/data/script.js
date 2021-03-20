@@ -58,12 +58,11 @@ function getSSID(){
 // SSID end
 
 // Multi-Switch
-function addClient(data){
-  for (var item of data){
+function addClient(id,label,address,status){
     // On Home page
     $("#switchList").append('\
-      <tr id='+item.id+'>\
-      <td><a>'+item.label+'</a><button style="float: right;" onclick="editLabel(this)">edit label</button></td>\
+      <tr id='+id+' data-ip='+address+'>\
+      <td><a>'+label+'</a><button style="float: right;" onclick="editLabel(this)">edit label</button></td>\
       <td><button onclick="doCalibration(this)">calibration</button></td>\
       <td>\
         <label class="switch">\
@@ -73,18 +72,18 @@ function addClient(data){
       </td>\
       </tr>'
     );
-    var target = $("#"+item.id+" input[type='checkbox']")
-    target.prop("checked",item.status)
+
+    var target = $("#"+id+" input[type='checkbox']")
+    target.prop("checked",status)
     target.change(
       function(){
-        $.get("http://"+$(this).parents("tr").prop("id")+".local/"+($(this).prop("checked")?"on":"off"))
+        $.get("http://"+$(this).parents("tr")[0].dataset.ip+"/"+($(this).prop("checked")?"on":"off"))
       }
     );
-  }
 }
 
 function doCalibration(item){
-  $.get("http://"+$(item).parents("tr").prop("id")+".local/calibration");
+  $.get("http://"+$(item).parents("tr")[0].dataset.ip+"/calibration");
 }
 
 function editLabel(item){
@@ -92,21 +91,27 @@ function editLabel(item){
   td.html('<input name="label" type="text" value='+td.find("a").html()+'></input>')
   td.find("input[name='label']").change(function(){
       var label = $(this).val();
-      var td = $(this).parents("td");
-      $.get("http://"+$(this).parents("tr").prop("id")+".local/setLabel","label="+label)
+      var tr = $(this).parents("tr");
+      $.get("http://"+tr[0].dataset.ip+"/setLabel","label="+label)
       td.html("<a>"+label+'</a><button style="float: right;" onclick="editLabel(this)">edit label</button>');
+      $("#client option[value='"+tr.prop("id")+"']").html(label);
     }
   )
 }
 
-function getClientList(){
+function getClient(){
   $.get("/getClient",function(data,status){
     for (var item of data){
-      $.get("http://"+item.id+".local/info", function(data,status){
-        addClient(data);
-      })
+      var id  = item.id;
+      var label = item.label;
+      var address = item.address;
+      $.get("http://"+item.address+"/status",
+        function(data,status){
+          addClient(id,label,address,data.status);
+        }
+      )
       // On Schedule page
-      $("#client").append("<option value='"+item.id+"'>"+item.label+"</option>");
+      $("#client").append("<option value='"+item.id+"' data-ip='"+item.address+"'>"+item.label+"</option>");
       $("#client").change();
     }
   });
@@ -173,7 +178,7 @@ $(function () {
   } else {
     openTab();
   }
-  getClientList();
+  getClient();
   updateWifiStauts();
   setTimeout(updateSSIDlist,500);
 
@@ -193,7 +198,9 @@ $(function () {
 
   $("#client").change(function(){
     $("#schedule-table tbody").empty();
-    $.get("http://"+$("#client-selector #client").val()+".local/getSchedule",function(data,status){
+    var id = $("#client").val()
+    var url = $("#client option[value='"+id+"']")[0].dataset.ip
+    $.get("http://"+url+"/getSchedule",function(data,status){
       for(item of data){
         splitItem = item.value.split(' ');
         insetTable(splitItem[1],splitItem[2],splitItem[6]);

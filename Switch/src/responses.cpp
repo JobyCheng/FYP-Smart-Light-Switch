@@ -26,17 +26,21 @@ void responses_NewDevice (AsyncWebServerRequest *request){
 
 void responses_on (AsyncWebServerRequest *request){
     Serial.println("\nGet:\t\tOn");
-    request->send(200);
-}
+    AsyncWebServerResponse *response = request->beginResponse(200);
+    response->addHeader("Access-Control-Allow-Origin","http://"+PRODUCT_NAME+".local");
+    request->send(response);}
 
 void responses_off (AsyncWebServerRequest *request){
     Serial.println("\nGet:\t\tOff");
-    request->send(200);
-}
+    AsyncWebServerResponse *response = request->beginResponse(200);
+    response->addHeader("Access-Control-Allow-Origin","http://"+PRODUCT_NAME+".local");
+    request->send(response);}
 
 void responses_getSchedule (AsyncWebServerRequest *request){
     Serial.println("\nGet:\t\tGet Schedule");
-    request->send(200, "application/json", cron_get_list_json());
+    AsyncWebServerResponse *response = request->beginResponse(200,"application/json", cron_get_list_json());
+    response->addHeader("Access-Control-Allow-Origin","http://"+PRODUCT_NAME+".local");
+    request->send(response);
 }
 
 void responses_setSchedule (AsyncWebServerRequest *request){
@@ -51,8 +55,10 @@ void responses_setSchedule (AsyncWebServerRequest *request){
         ++i;
     }
     preferences.end();
-    request->send(200);
-}
+    AsyncWebServerResponse *response = request->beginResponse(200);
+    response->addHeader("Access-Control-Allow-Origin","http://"+PRODUCT_NAME+".local");
+    request->send(response);
+    }
 
 void responses_wifiStauts (AsyncWebServerRequest *request){
     auto status = WiFi.status();
@@ -93,7 +99,6 @@ void responses_SSIDlist (AsyncWebServerRequest *request){
     if(n < 0){     // Scanning or do not start yet
       request->send(202);
       Serial.println("Respond:\t202");
-      WiFi.scanDelete();
       WiFi.scanNetworks(true);
       return;
     }
@@ -146,7 +151,8 @@ void responses_getClient (AsyncWebServerRequest *request){
     if(i) {json += ",";};
     json += "{";
     json += "\"id\":\""+client_list[i].id+"\",";
-    json += "\"label\":\""+client_list[i].label+"\"";
+    json += "\"label\":\""+client_list[i].label+"\",";
+    json += "\"address\":\""+client_list[i].address.toString()+"\"";
     json += "}";
   }
   json += "]";
@@ -154,11 +160,9 @@ void responses_getClient (AsyncWebServerRequest *request){
   request->send(200, "application/json", json);
 }
 
-void responses_info (AsyncWebServerRequest *request){
-  Serial.println("\nGet:\t\tInfo");
+void responses_status (AsyncWebServerRequest *request){
+  Serial.println("\nGet:\t\tStatus");
   String json = "[{";
-  json += "\"id\":\""+DEVICE_ID+"\",";
-  json += "\"label\":\""+LABEL+"\",";
   json += "\"status\":"+String("false"); // NEED TO BE CHANGE!!!!!!!!!!!!!!!!!!!!!!
   json += "}]";
 
@@ -169,17 +173,23 @@ void responses_info (AsyncWebServerRequest *request){
 
 void responses_setLabel (AsyncWebServerRequest *request){
   Serial.println("\nGet:\t\tSet label");
-  request->send(200);
+  AsyncWebServerResponse *response = request->beginResponse(200);
+  response->addHeader("Access-Control-Allow-Origin","http://"+PRODUCT_NAME+".local");
+  request->send(response);
   if(request->hasParam("label")){
-    LABEL = request->getParam("label")->value();
-    Serial.println("New label:\t"+LABEL);
+    String label = request->getParam("label")->value();
+    Serial.println("New label:\t"+label);
     preferences.begin("setting");
-    preferences.putString("LABEL", LABEL);
+    preferences.putString("LABEL", label);
     preferences.end();
+    LABEL = label;
+    udp_boardcast_message();
   }
 }
 
 void responses_calibration (AsyncWebServerRequest *request){
     Serial.println("\nGet:\t\tCalibration");
-    request->send(200);
-}
+    AsyncWebServerResponse *response = request->beginResponse(200);
+    response->addHeader("Access-Control-Allow-Origin","http://"+PRODUCT_NAME+".local");
+    request->send(response);
+  }

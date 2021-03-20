@@ -50,8 +50,10 @@ void udp_handle_next_packet()
   int seprater = recived_data.indexOf(",");
   String id = recived_data.substring(0,seprater);
   String label = recived_data.substring(seprater+1,recived_data.length());
+  IPAddress address = udp.remoteIP();
   Serial.println("ID:\t\t"+id);
   Serial.println("LABEL:\t\t"+label);
+  Serial.println("ADDRESS:\t"+address.toString());
 
   // Check before adding to list
   bool existed = false;
@@ -59,11 +61,12 @@ void udp_handle_next_packet()
     if (id == client_list[i].id){
       existed = true;
       client_list[i].label=label;
+      client_list[i].address=address;
       break;
     }
   }
   if (!existed){
-    client_list.push_back({id,label});
+    client_list.push_back({id,label,address});
   }
 
   udp.begin(UDP_PORT);
