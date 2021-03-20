@@ -58,30 +58,6 @@ function getSSID(){
 // SSID end
 
 // Multi-Switch
-function addClient(id,label,address,status){
-    // On Home page
-    $("#switchList").append('\
-      <tr id='+id+' data-ip='+address+'>\
-      <td><a>'+label+'</a><button style="float: right;" onclick="editLabel(this)">edit label</button></td>\
-      <td><button onclick="doCalibration(this)">calibration</button></td>\
-      <td>\
-        <label class="switch">\
-          <input type="checkbox">\
-          <span class="slider round"></span>\
-        </label>\
-      </td>\
-      </tr>'
-    );
-
-    var target = $("#"+id+" input[type='checkbox']")
-    target.prop("checked",status)
-    target.change(
-      function(){
-        $.get("http://"+$(this).parents("tr")[0].dataset.ip+"/"+($(this).prop("checked")?"on":"off"))
-      }
-    );
-}
-
 function doCalibration(item){
   $.get("http://"+$(item).parents("tr")[0].dataset.ip+"/calibration");
 }
@@ -102,19 +78,36 @@ function editLabel(item){
 function getClient(){
   $.get("/getClient",function(data,status){
     for (var item of data){
-      var id  = item.id;
-      var label = item.label;
-      var address = item.address;
-      $.get("http://"+item.address+"/status",
-        function(data,status){
-          addClient(id,label,address,data.status);
-        }
-      )
       // On Schedule page
       $("#client").append("<option value='"+item.id+"' data-ip='"+item.address+"'>"+item.label+"</option>");
       $("#client").change();
+      $("#switchList").append('\
+      <tr id='+item.id+' data-ip='+item.address+'>\
+      <td><a>'+item.label+'</a><button style="float: right;" onclick="editLabel(this)">edit label</button></td>\
+      <td><button onclick="doCalibration(this)">calibration</button></td>\
+      <td>\
+        <label class="switch">\
+          <input type="checkbox">\
+          <span class="slider round"></span>\
+        </label>\
+      </td>\
+      </tr>'
+    );
+    setInterval(getSwitchStatus,3000);
+    var target = $("#"+item.id+" input[type='checkbox']")
+    target.change(function(){
+      $.get("http://"+$(this).parents("tr")[0].dataset.ip+"/"+($(this).prop("checked")?"on":"off"))
+    });
     }
   });
+}
+
+function getSwitchStatus(){
+  var list = $("#switchList tr");
+  for(var item of list){
+    var target = $(item).find("input[type='checkbox']")
+    $.get("http://"+item.dataset.ip+"/status",function(data,status){target.prop("checked",status)})
+  }  
 }
 // End Multi-Switch
 
