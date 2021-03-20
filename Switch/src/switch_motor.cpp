@@ -3,6 +3,8 @@
 const int AIN1 = 25; 
 const int AIN2 = 26; 
 const int EN = 27;
+float T8Roll;
+float T9Roll;
 
 void on(){
     digitalWrite(EN, HIGH);
@@ -23,14 +25,32 @@ void off(){
 }
 
 void recalibrate(){
+    unsigned long lastTouch = millis();
     digitalWrite(EN, HIGH);
-    while(touchedT8){
+    while(triggeredT8 && !triggeredT9){
+        digitalWrite(AIN1, LOW);
+        digitalWrite(AIN2, HIGH);
+        T8Roll = gyro_getRoll();
+        lastTouch = millis();
+    }
+    while(triggeredT9 && !triggeredT8){
         digitalWrite(AIN1, HIGH);
         digitalWrite(AIN2, LOW);
+        T9Roll = gyro_getRoll();
+        lastTouch = millis();
     }
-    while(touchedT9){
-        
+    if((millis() - lastTouch) < long(350)){
+
     }
+}
+
+void turnClkwise(){
+    float roll = gyro_getRoll();
+    
+}
+
+void turnAntiClkwise(){
+    
 }
 
 void touch_manual() {

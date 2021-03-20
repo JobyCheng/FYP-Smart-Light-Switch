@@ -12,13 +12,3 @@ bool touchDelayComp(unsigned long lastTouch){
     return true;
 }
 
-bool touchedT8(){
-    if(touchRead(T8) < threshold) return true;
-    else return false;
-}
-
-bool touchedT9(){
-    if(touchRead(T8) < threshold) return true;
-    return false;
-}
-

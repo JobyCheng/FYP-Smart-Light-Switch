@@ -36,12 +36,6 @@ void responses_off (AsyncWebServerRequest *request){
     request->send(200);
 }
 
-void responses_recalibrate (AsyncWebServerRequest *request){
-    Serial.println("\nGet:\t\trecalibrate");
-    recalibrate();
-    request->send(200);
-}
-
 void responses_getSchedule (AsyncWebServerRequest *request){
     Serial.println("\nGet:\t\tGet Schedule");
     request->send(200, "application/json", cron_get_list_json());
