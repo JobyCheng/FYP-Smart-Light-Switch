@@ -31,7 +31,7 @@ bool udp_checkServer(int timeout){
     udp.read(buf, packetSize);
     String recived_data = String(buf).substring(0,packetSize);
     
-    if (recived_data == "Recived"){
+    if (recived_data == ("Recived:"+MAC_ADDR+","+LABEL)){
       return true;
     }
   }
@@ -71,6 +71,6 @@ void udp_handle_next_packet()
 
   udp.begin(UDP_PORT);
   udp.beginPacket(udp.remoteIP(),udp.remotePort());
-  udp.print("Recived");
+  udp.print("Recived:"+recived_data);
   udp.endPacket();
 }
