@@ -143,6 +143,8 @@ void setup() {
   web_server.on("/wifiStauts",HTTP_GET,responses_wifiStauts);
   web_server.on("/SSIDlist", HTTP_GET,responses_SSIDlist);
   web_server.on("/wifi_setting",HTTP_POST,responses_wifi_setting);
+   
+  web_server.on("/getClient",HTTP_GET,responses_getClient);
  }
 
   web_server.on("/reset",HTTP_GET,responses_reset);
@@ -153,8 +155,6 @@ void setup() {
 
   web_server.on("/getSchedule",HTTP_GET,responses_getSchedule);
   web_server.on("/setSchedule",HTTP_POST,responses_setSchedule);
-
-  web_server.on("/getClient",HTTP_GET,responses_getClient);
 
   web_server.on("/status",HTTP_GET,responses_status);
   web_server.on("/setLabel",HTTP_GET,responses_setLabel);
