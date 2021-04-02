@@ -59,8 +59,10 @@
         <form id="Wifi_form">
             <label for="SSID">SSID:</label>
             <br>
-            <select name="SSID" id="SSID"></select>
-            <input type="text" name="hidden_SSID" id="hidden_input" style="display: none;"></input>
+            <input list="ssid-list" name="SSID" type="text">
+            <datalist id='ssid-list'>
+                <option>list loading.......</option>
+            </datalist>
             <br>
             <label for="Password">Password:</label>
             <br>

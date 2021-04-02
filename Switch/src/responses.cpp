@@ -124,22 +124,19 @@ void responses_wifi_setting (AsyncWebServerRequest *request){
     Serial.println("\nChange wifi setting");
     
     int key_total = 3;
-    String keys[key_total] = {"SSID","hidden_SSID","passwd"};
+    String keys[key_total] = {"SSID","passwd"};
     for(int i = 0; i<key_total; ++i){
       if(!(request->hasParam(keys[i], true))){request->send(202, "text/plain", "Missing data: "+keys[i]); return;}
     }
 
     String SSID = request->getParam("SSID", true)->value();
-    String hidden_SSID = request->getParam("hidden_SSID", true)->value();
     String passwd = request->getParam("passwd", true)->value();
 
     bool data_not_valid = (passwd.length()<8)||(passwd.length()>63)||(SSID=="");
     if(data_not_valid){request->send(202, "text/plain", "Invaild Data");return;}
 
     request->send(200, "text/plain", "New setting applied, wait until restart");
-    
-    if (SSID == "hidden"){ SSID=hidden_SSID; }
-    
+   
     preferences.begin("setting");
     preferences.putString("SSID", SSID);
     preferences.putString("PASSWD", passwd);

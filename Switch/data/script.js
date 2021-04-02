@@ -41,16 +41,15 @@ function getSSID(){
     if(xhr.status == 202){setTimeout(getSSID,500);}
     if(xhr.status == 200){
       //console.log(data);
-      $("#SSID").empty();
-      var content = "<optgroup label='Search Result'>"
+      $("#ssid-list").empty();
+      var content = ""
       for (item of data){
         if (item.ssid){
         content += "<option value='"+item.ssid+"'>"+item.ssid+"</option>";
         }
       }
-      content += "<optgroup label='---------'><option value='hidden'>Hidden Network</option>"
-      $("#SSID").html(content);
-      $("#SSID").change();
+      $("#ssid-list").html(content);
+      $("#ssid-list").change();
       ssidlock = false;
     }
 	});
@@ -180,14 +179,6 @@ $(function () {
   var minutes = $("#new-schedule select[name='minute']")
   for(var i=0;i<24;i++){hour.append("<option value='"+i+"'>"+i+"</option>")}
   for(var i=0;i<60;i++){minutes.append("<option value='"+i+"'>"+i+"</option>")}
-
-  $("#SSID").change(function(){
-    if ($("#Wifi_form select[name=SSID]").val() == "hidden"){
-      $("#hidden_input").css("display","block");
-    }else{
-      $("#hidden_input").css("display","none");
-    }
-  })
 
   $("#client").change(function(){
     $("#schedule-table tbody").empty();

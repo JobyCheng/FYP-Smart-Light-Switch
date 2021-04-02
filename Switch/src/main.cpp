@@ -16,7 +16,6 @@
 #include <ESPAsyncWebServer.h>
 #include "responses.h"
 
-#include <TaskScheduler.h>
 #include <CronAlarms.h>
 
 #include "switch_gy25z.h"
@@ -51,12 +50,9 @@ extern CronClass Cron;
 extern WiFiClass WiFi;
 WiFiUDP udp;
 
-// Task Schedule
-Scheduler taskSchedule;
-Task t_DNS_request(1, TASK_FOREVER, [](){dns_server.processNextRequest();},&taskSchedule);
-Task t_cron(1, TASK_FOREVER, [](){Cron.delay();},&taskSchedule);
-Task t_upd_server(1, TASK_FOREVER, [](){udp_handle_next_packet();},&taskSchedule);
-Task t_upd_boardcast(1000*60, TASK_FOREVER, [](){udp_boardcast_message();},&taskSchedule);
+bool DNS_enabled;
+
+unsigned long lastLoop;
 
 /*
 ███████╗███████╗████████╗██╗   ██╗██████╗
@@ -82,7 +78,9 @@ void setup() {
 
   
   // create a id with MAC address.
-  DEVICE_ID = String((unsigned long) ESP.getEfuseMac(),16);
+  MAC_ADDR = String((unsigned long) ESP.getEfuseMac(),16);
+  DEVICE_ID = MAC_ADDR;
+
   // get label if any
   preferences.begin("setting");
   LABEL = preferences.isKey("LABEL")?preferences.getString("LABEL"):String(DEVICE_ID);
@@ -108,11 +106,9 @@ void setup() {
         Serial.println("Server found");
         udp_stop();
         role = CLIENT;
-        t_upd_boardcast.enable();
       }else{
-        // keep listening to port 8000
-        t_upd_server.enable();
-      }
+        mDNS_start(PRODUCT_NAME);
+        client_list.push_back({DEVICE_ID,LABEL,WiFi.localIP()});      }
     }
 
     Serial.println("Role:\t\t"+((role == CLIENT)?String("Client"):String("Server")));
@@ -121,20 +117,14 @@ void setup() {
     
     if(time_sync_start()){  // Start cron if time sync is check.
       cron_load_from_setting();
-      t_cron.enable();
     }
     
   }else{
     //Access point
     wifi_ap_start(PRODUCT_NAME+"-"+DEVICE_ID);
     //DNS
-    if(DNS_start("*", WiFi.softAPIP())){t_DNS_request.enable();}
-  }
-
-  // Add itself to the client list
-  if (role == SERVER){  // client do not need to use client_list
-    mDNS_start(PRODUCT_NAME);
-    client_list.push_back({DEVICE_ID,LABEL,WiFi.localIP()});
+    DNS_enabled = DNS_start("*", WiFi.softAPIP());
+    //if(DNS_enabled){t_DNS_request.enable();}
   }
 
 
@@ -163,9 +153,12 @@ void setup() {
 
  if(role == SERVER){
   web_server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
+
   web_server.on("/wifiStauts",HTTP_GET,responses_wifiStauts);
   web_server.on("/SSIDlist", HTTP_GET,responses_SSIDlist);
   web_server.on("/wifi_setting",HTTP_POST,responses_wifi_setting);
+   
+  web_server.on("/getClient",HTTP_GET,responses_getClient);
  }
 
   web_server.on("/reset",HTTP_GET,responses_reset);
@@ -177,15 +170,14 @@ void setup() {
   web_server.on("/getSchedule",HTTP_GET,responses_getSchedule);
   web_server.on("/setSchedule",HTTP_POST,responses_setSchedule);
 
-  web_server.on("/getClient",HTTP_GET,responses_getClient);
-
   web_server.on("/status",HTTP_GET,responses_status);
   web_server.on("/setLabel",HTTP_GET,responses_setLabel);
 
   web_server.on("/calibration",HTTP_GET,responses_calibration);  
 
   web_server.begin();
-
+  
+  lastLoop = millis();
 }
 
 /*
@@ -199,5 +191,8 @@ void setup() {
 */
 void loop() {
   // put your main code here, to run repeatedly:
-    taskSchedule.execute();
+  Cron.delay();
+  if (DNS_enabled){dns_server.processNextRequest();};
+  if (role==SERVER){udp_handle_next_packet();}
+  if (role==CLIENT && (millis()>lastLoop+1000*60)){udp_boardcast_message();lastLoop=millis();}
 }
