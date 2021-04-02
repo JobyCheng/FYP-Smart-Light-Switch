@@ -19,6 +19,10 @@
 #include <TaskScheduler.h>
 #include <CronAlarms.h>
 
+#include "switch_gy25z.h"
+#include "switch_touch.h"
+#include "switch_motor.h"
+
 /*
 ██╗   ██╗ █████╗ ██████╗ ██╗ █████╗ ██████╗ ██╗     ███████╗
 ██║   ██║██╔══██╗██╔══██╗██║██╔══██╗██╔══██╗██║     ██╔════╝

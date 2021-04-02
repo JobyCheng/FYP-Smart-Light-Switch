@@ -28,13 +28,17 @@ void responses_on (AsyncWebServerRequest *request){
     Serial.println("\nGet:\t\tOn");
     AsyncWebServerResponse *response = request->beginResponse(200);
     response->addHeader("Access-Control-Allow-Origin","http://"+PRODUCT_NAME+".local");
-    request->send(response);}
+    request->send(response);
+    on();
+    }
 
 void responses_off (AsyncWebServerRequest *request){
     Serial.println("\nGet:\t\tOff");
     AsyncWebServerResponse *response = request->beginResponse(200);
     response->addHeader("Access-Control-Allow-Origin","http://"+PRODUCT_NAME+".local");
-    request->send(response);}
+    request->send(response);
+    off();
+    }
 
 void responses_getSchedule (AsyncWebServerRequest *request){
     Serial.println("\nGet:\t\tGet Schedule");
@@ -192,4 +196,5 @@ void responses_calibration (AsyncWebServerRequest *request){
     AsyncWebServerResponse *response = request->beginResponse(200);
     response->addHeader("Access-Control-Allow-Origin","http://"+PRODUCT_NAME+".local");
     request->send(response);
+    recalibrate();
   }

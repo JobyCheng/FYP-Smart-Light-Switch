@@ -1,5 +1,9 @@
 #include "switch_gy25z.h"
 
+float roll;
+unsigned char Re_buf[11],counter = 0;
+unsigned char sign = 0;
+
 void gyro_init(){
     Serial2.begin(115200);
     
@@ -57,6 +61,7 @@ void gyro_queryOutputMode(){
 }
 
 float gyro_getRoll(){
+    gyro_queryOutputMode();
     while (Serial2.available()){
     Re_buf[counter] = (unsigned char)Serial2.read();
     //Serial.println(Re_buf[counter]);
@@ -75,8 +80,8 @@ float gyro_getRoll(){
      sign=0;
      if(Re_buf[0] == 0x5A&&Re_buf[1] == 0x5A){
         roll = (Re_buf[4]<<8 | Re_buf[5])/100.0;
-        Serial.print("roll: ");
-        Serial.println(roll, DEC); 
+        //Serial.print("roll: ");
+        //Serial.println(roll, DEC); 
      }
   }
   return roll;
