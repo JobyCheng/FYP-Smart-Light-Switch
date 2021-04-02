@@ -92,8 +92,8 @@ void setup() {
         udp_stop();
         role = CLIENT;
       }else{
-        // keep listening to port 8000
-      }
+        mDNS_start(PRODUCT_NAME);
+        client_list.push_back({DEVICE_ID,LABEL,WiFi.localIP()});      }
     }
 
     Serial.println("Role:\t\t"+((role == CLIENT)?String("Client"):String("Server")));
@@ -110,12 +110,6 @@ void setup() {
     //DNS
     DNS_enabled = DNS_start("*", WiFi.softAPIP());
     //if(DNS_enabled){t_DNS_request.enable();}
-  }
-
-  // Add itself to the client list
-  if (role == SERVER){  // client do not need to use client_list
-    mDNS_start(PRODUCT_NAME);
-    client_list.push_back({DEVICE_ID,LABEL,WiFi.localIP()});
   }
 
 
