@@ -16,7 +16,6 @@
 #include <ESPAsyncWebServer.h>
 #include "responses.h"
 
-#include <TaskScheduler.h>
 #include <CronAlarms.h>
 
 /*
@@ -66,7 +65,7 @@ void setup() {
   // create a id with MAC address.
   MAC_ADDR = String((unsigned long) ESP.getEfuseMac(),16);
   DEVICE_ID = MAC_ADDR;
-  
+
   // get label if any
   preferences.begin("setting");
   LABEL = preferences.isKey("LABEL")?preferences.getString("LABEL"):String(DEVICE_ID);
