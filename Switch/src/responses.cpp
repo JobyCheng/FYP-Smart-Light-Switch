@@ -131,7 +131,7 @@ void responses_wifi_setting (AsyncWebServerRequest *request){
     bool data_not_valid = (passwd.length()<8)||(passwd.length()>63)||(SSID=="");
     if(data_not_valid){request->send(202, "text/plain", "Invaild Data");return;}
 
-    request->send(200, "text/plain", "New setting applied, wait until restart");
+    request->send(200, "text/plain", "New setting applied, reload page after restart");
    
     preferences.begin("setting");
     preferences.putString("SSID", SSID);
