@@ -119,7 +119,7 @@ void responses_SSIDlist (AsyncWebServerRequest *request){
 void responses_wifi_setting (AsyncWebServerRequest *request){
     Serial.println("\nChange wifi setting");
     
-    int key_total = 3;
+    int key_total = 2;
     String keys[key_total] = {"SSID","passwd"};
     for(int i = 0; i<key_total; ++i){
       if(!(request->hasParam(keys[i], true))){request->send(202, "text/plain", "Missing data: "+keys[i]); return;}
