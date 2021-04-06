@@ -62,7 +62,7 @@ void responses_setSchedule (AsyncWebServerRequest *request){
     AsyncWebServerResponse *response = request->beginResponse(200);
     response->addHeader("Access-Control-Allow-Origin","http://"+PRODUCT_NAME+".local");
     request->send(response);
-    }
+}
 
 void responses_wifiStauts (AsyncWebServerRequest *request){
     auto status = WiFi.status();

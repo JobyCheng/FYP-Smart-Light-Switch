@@ -17,42 +17,11 @@ css may not update beacuse of cache. Press `ctrl+F5` for most window browser. `c
 - [x] Changing the Access Point password
 - [x] Wifi Page ( Fishished the fundimental part, but the UI is bad )
 - [x] Reset all the setting ( by entering http://esp32.local/reset with connected device )
-- [ ] HOME Page
-- [ ] Multi Switch control (part of it finished, need testing and improvement)
-- [ ] time scheduled task
+- [x] HOME Page
+- [x] Multi Switch control 
 - [x] time synchronization
+- [x] time scheduled task
 
-## Multi Switch control Detail
-There are a two case:
-- boot at different time
-- boot at the same time
-
-Flow (theoratical):
-
-Send a request to `esp32.local/something` to check if it exist
-
-if there no respond, open a server with client and end
-
-post the ip and mac address of client to the server
-
-server save the mac & ip. Then assign a id to it.<br>*id and mac need to be save permanently.*
-
-    Example `ip[mac]`&`mac[id]`  or  json?
-
-Function that need to be a request:
-- turn on
-- turn off
-- calibration
-
-## Role:
-To determent if it is a server or not, check the mDNS address is occupied or not after connect to wifi.
-If it did not join a wifi network. Assume it is a server.
-### Diff:
-||Server|Client|
-|---|---|---|
-|mDNS address|use default name|use id|
-
----
 
 ## Time schedule method
 use cron-like syntax
