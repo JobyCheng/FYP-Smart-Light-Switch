@@ -4,7 +4,7 @@ float roll;
 unsigned char Re_buf[11],counter = 0;
 unsigned char sign = 0;
 
-void gyro_init(){
+void gy25z_init(){
     Serial2.begin(115200);
     
     Serial2.write(0XA5);
@@ -28,7 +28,7 @@ void gyro_init(){
     Serial.println("gyro start");
 }
 
-void gyro_resetRollPitch(){
+void gy25z_resetRollPitch(){
     Serial2.write(0XA5); 
     Serial2.write(0X57);
     Serial2.write(0X01); 
@@ -36,7 +36,7 @@ void gyro_resetRollPitch(){
     delay(3000);
 }
 
-void gyro_resetYaw(){
+void gy25z_resetYaw(){
     Serial2.write(0XA5); 
     Serial2.write(0X57);
     Serial2.write(0X02); 
@@ -44,7 +44,7 @@ void gyro_resetYaw(){
     delay(3000);
 }
 
-void gyro_autoOutputMode(){
+void gy25z_autoOutputMode(){
     Serial2.write(0XA5); 
     Serial2.write(0X56);
     Serial2.write(0X02); 
@@ -52,7 +52,7 @@ void gyro_autoOutputMode(){
     delay(1000);
 }
 
-void gyro_queryOutputMode(){
+void gy25z_queryOutputMode(){
     Serial2.write(0XA5); 
     Serial2.write(0X56);
     Serial2.write(0X01); 
@@ -60,8 +60,8 @@ void gyro_queryOutputMode(){
     delay(1000);
 }
 
-float gyro_getRoll(){
-    gyro_queryOutputMode();
+float gy25z_getRoll(){
+    gy25z_queryOutputMode();
     while (Serial2.available()){
     Re_buf[counter] = (unsigned char)Serial2.read();
     //Serial.println(Re_buf[counter]);

@@ -74,8 +74,12 @@ void setup() {
   touchAttachInterrupt(T8, T8wasActivated, threshold);
   touchAttachInterrupt(T9, T9wasActivated, threshold);
 
-  gyro_init();
+  gy25z_init();
 
+  preferences.begin("switchSetting");
+  preferences.putBool("switchIsOn", false);
+  preferences.putBool("calibrated", false);
+  preferences.end();
   
   // create a id with MAC address.
   MAC_ADDR = String((unsigned long) ESP.getEfuseMac(),16);

@@ -163,9 +163,11 @@ void responses_getClient (AsyncWebServerRequest *request){
 
 void responses_status (AsyncWebServerRequest *request){
   Serial.println("\nGet:\t\tStatus");
+  preferences.begin("switchSetting");
   String json = "[{";
-  json += "\"status\":"+String("false"); // NEED TO BE CHANGE!!!!!!!!!!!!!!!!!!!!!!
+  json += "\"status\":"+((preferences.getBool("switchIsOn",false))?String("true"):String("false")); // NEED TO BE CHANGE!!!!!!!!!!!!!!!!!!!!!!
   json += "}]";
+  preferences.end();
 
   AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
   response->addHeader("Access-Control-Allow-Origin","http://"+PRODUCT_NAME+".local");
@@ -193,5 +195,5 @@ void responses_calibration (AsyncWebServerRequest *request){
     AsyncWebServerResponse *response = request->beginResponse(200);
     response->addHeader("Access-Control-Allow-Origin","http://"+PRODUCT_NAME+".local");
     request->send(response);
-    recalibrate();
+    calibrate();
   }

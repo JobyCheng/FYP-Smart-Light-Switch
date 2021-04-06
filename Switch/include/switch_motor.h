@@ -17,12 +17,13 @@ extern const int EN;
 
 extern float T8roll;
 extern float T9roll;
-//extern unsigned char cal;
 
+//extern bool calculated;
+//extern bool switchIsOn;
 
 void on();
 void off();
-void recalibrate();
+void calibrate();
 void manual_switch();
 void turnClkwise();
 void turnAntiClkwise();

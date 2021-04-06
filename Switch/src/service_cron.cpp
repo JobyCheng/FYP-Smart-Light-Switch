@@ -1,8 +1,9 @@
 #include "service_cron.h"
+#include "switch_motor.h"
 
 // dummy function will be replace by other later
-void turnON(){Serial.println("ON");};
-void turnOFF(){Serial.println("OFF");};
+//void turnON(){Serial.println("ONNN");};
+//void turnOFF(){Serial.println("OFFFF");};
 
 String cron_key(int num){return "Schedule_" + String(num);}
 
@@ -30,7 +31,7 @@ void cron_load_from_setting(){
 
 uint8_t cron_add(String custom_cron){
     String timing = custom_cron.substring(0,custom_cron.lastIndexOf(' '));
-    return Cron.create((char *)timing.c_str(),(custom_cron.endsWith("on")?turnON:turnOFF),false);
+    return Cron.create((char *)timing.c_str(),(custom_cron.endsWith("on")?on:off),false);
 }
 
 String cron_get_list_json(){
