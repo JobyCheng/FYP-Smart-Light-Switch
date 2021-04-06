@@ -1,10 +1,11 @@
-# FYP-Smart-Light-Switch
+# FYP - Smart Light Switch
 
+This is the repo for Group SS04a-20 Final Year Project.
 
-***To ingore modification of files after commit use `git update-index --assume-unchanged <file>`***
+`/Switch` contain the PlatformIO project file for the esp32 development board.
 
-Currently ingored file:
-- Example_WiFi-AP_DNS_mDNS/setting.h
-- Example_Async_SPIFFS/include/setting.h
+`/model` contain file related to the 3D-model for this project.
 
-***To add them back `git update-index --no-assume-unchanged <file>`***
+`/video` contain demo video of the product.
+
+`node-red-config` contain JSON file for node-red
