@@ -158,7 +158,9 @@ function applyTable(){
     }
     data[num++]=temp;
   }
-  $.post("/setSchedule",data);
+  var id = $("#client").val()
+  var url = $("#client option[value='"+id+"']")[0].dataset.ip
+  $.post("http://"+url+"/setSchedule",data);
 }
 
 window.onhashchange = openTab; 

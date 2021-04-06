@@ -108,7 +108,6 @@ void setup() {
         role = CLIENT;
       }else{
         mDNS_start(PRODUCT_NAME);
-        client_list.push_back({DEVICE_ID,LABEL,WiFi.localIP()});      }
     }
 
     Serial.println("Role:\t\t"+((role == CLIENT)?String("Client"):String("Server")));
@@ -126,6 +125,8 @@ void setup() {
     DNS_enabled = DNS_start("*", WiFi.softAPIP());
     //if(DNS_enabled){t_DNS_request.enable();}
   }
+
+  client_list.push_back({DEVICE_ID,LABEL,WiFi.localIP()});}
 
 
   /*

@@ -123,7 +123,7 @@ void responses_SSIDlist (AsyncWebServerRequest *request){
 void responses_wifi_setting (AsyncWebServerRequest *request){
     Serial.println("\nChange wifi setting");
     
-    int key_total = 3;
+    int key_total = 2;
     String keys[key_total] = {"SSID","passwd"};
     for(int i = 0; i<key_total; ++i){
       if(!(request->hasParam(keys[i], true))){request->send(202, "text/plain", "Missing data: "+keys[i]); return;}
@@ -135,7 +135,7 @@ void responses_wifi_setting (AsyncWebServerRequest *request){
     bool data_not_valid = (passwd.length()<8)||(passwd.length()>63)||(SSID=="");
     if(data_not_valid){request->send(202, "text/plain", "Invaild Data");return;}
 
-    request->send(200, "text/plain", "New setting applied, wait until restart");
+    request->send(200, "text/plain", "New setting applied, reload page after restart");
    
     preferences.begin("setting");
     preferences.putString("SSID", SSID);
