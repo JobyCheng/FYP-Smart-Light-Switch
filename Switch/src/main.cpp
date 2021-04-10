@@ -111,7 +111,9 @@ void setup() {
         udp_stop();
         role = CLIENT;
       }else{
+        // keep listening to port 8000
         mDNS_start(PRODUCT_NAME);
+      }
     }
 
     Serial.println("Role:\t\t"+((role == CLIENT)?String("Client"):String("Server")));
@@ -130,7 +132,7 @@ void setup() {
     //if(DNS_enabled){t_DNS_request.enable();}
   }
 
-  client_list.push_back({DEVICE_ID,LABEL,WiFi.localIP()});}
+  client_list.push_back({DEVICE_ID,LABEL,WiFi.localIP()});
 
 
   /*
@@ -198,6 +200,6 @@ void loop() {
   // put your main code here, to run repeatedly:
   Cron.delay();
   if (DNS_enabled){dns_server.processNextRequest();};
-  if (role==SERVER){udp_handle_next_packet();}
+  if (role==SERVER && WiFi.isConnected()){udp_handle_next_packet();}
   if (role==CLIENT && (millis()>lastLoop+1000*60)){udp_boardcast_message();lastLoop=millis();}
 }
