@@ -25,7 +25,7 @@ void gy25z_init(){
     Serial2.write(0X00);
     delay(100);
     
-    Serial.println("gyro start");
+    //Serial.println("gy25z start");
 }
 
 void gy25z_resetRollPitch(){

@@ -202,4 +202,5 @@ void loop() {
   if (DNS_enabled){dns_server.processNextRequest();};
   if (role==SERVER && WiFi.isConnected()){udp_handle_next_packet();}
   if (role==CLIENT && (millis()>lastLoop+1000*60)){udp_boardcast_message();lastLoop=millis();}
+  touch_manual();
 }

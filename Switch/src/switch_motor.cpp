@@ -4,45 +4,41 @@
 const int AIN1 = 25; 
 const int AIN2 = 26; 
 const int EN = 27;
-float T8Roll;
-float T9Roll;
-//bool calculated = false;
-//bool switchIsOn = false;
+volatile float T8Roll;
+volatile float T9Roll;
+bool calManual = false;
+
 
 //clk = t8
 //anticlk = t9
 
 void on(){
+    //Serial.print("Switch On");
     
-    /**
     preferences.begin("switchSetting"); 
     if(preferences.getBool("T8IsOn", false)){
         turnClkwise();
-    }
-    else{
+    }else{
         turnAntiClkwise();
     }
     preferences.end();
-    **/
-    Serial.print("on");
 }
 
 void off(){
-    /**
+    //Serial.print("off");
+
     preferences.begin("switchSetting");
     if(preferences.getBool("T8IsOn", false)){
         turnAntiClkwise();
-    }
-    else{
+    }else{
         turnClkwise();
     }
     preferences.end();
-    **/
-    Serial.print("off");
 }
 
 void calibrate(){
-    Serial.println("test");
+    //Serial.println("test");
+    delay(700);
     bool cal = true;
     bool calT8 = false;
     bool calT9 = false;
@@ -58,7 +54,7 @@ void calibrate(){
                 triggeredT8 = false;
                 calT8 = true;
                 T8Roll = gy25z_getRoll();
-                delay(1);
+                delay(50);
             }
         }
         if(triggeredT9 && !triggeredT8){
@@ -71,7 +67,7 @@ void calibrate(){
                 triggeredT9 = false;
                 calT9 = true;
                 T9Roll = gy25z_getRoll();
-                delay(1);
+                delay(50);
             }
         }
         if(calT8 && calT9){
@@ -90,11 +86,13 @@ void calibrate(){
             Serial.println(preferences.getFloat("T8Roll",-1));
             Serial.print("T9Roll: "); 
             Serial.println(preferences.getFloat("T9Roll",-1));
-            Serial.println(preferences.getBool("T8IsOn", false));
+            Serial.print("T8IsOn:" );
+            Serial.println(preferences.getBool("T8IsOn", false)?String("True"):String("False"));
             preferences.putBool("calibrated",true);
             preferences.end();
             
             cal = false;
+            calManual = true;
             Serial.println("end cal");
         }
     }
@@ -108,11 +106,11 @@ void turnClkwise(){
         digitalWrite(EN, HIGH);
         float current_roll = gy25z_getRoll();
         float target_roll = preferences.getFloat("T8Roll",-1);
-        while(current_roll< target_roll && abs(current_roll - target_roll)>2){
-            digitalWrite(AIN1, LOW);
+        digitalWrite(AIN1, LOW);
             digitalWrite(AIN2, HIGH);
+        if(abs(current_roll - target_roll)<=2){
+            digitalWrite(EN, LOW);
         }
-        digitalWrite(EN, LOW);
     }else{
         Serial.println("Plz calibrate first");
     }
@@ -126,11 +124,11 @@ void turnAntiClkwise(){
         digitalWrite(EN, HIGH);
         float current_roll = gy25z_getRoll();
         float target_roll = preferences.getFloat("T9Roll",-1);
-        while(current_roll > target_roll && abs(current_roll - target_roll)>2){
-            digitalWrite(AIN1, HIGH);
-            digitalWrite(AIN2, LOW);
+        digitalWrite(AIN1, HIGH);
+        digitalWrite(AIN2, LOW);
+        if(abs(current_roll - target_roll)<=2){
+            digitalWrite(EN, LOW);
         }
-        digitalWrite(EN, LOW);
     }else{
         Serial.println("Plz calibrate first");
     }
@@ -138,18 +136,18 @@ void turnAntiClkwise(){
 }
 
 void touch_manual() {
-  if (triggeredT8){
+  if (triggeredT8 && calManual){
     triggeredT8 = false;
-    if (touchDelayComp(lastT8)){
+    if (touchIntervalComp(lastT8)){
       //Serial.println("turn anticlkwise");
       turnClkwise();
       lastT8 = millis();
     }
   }
 
-  if (triggeredT9){
+  if (triggeredT9 && calManual){
     triggeredT9 = false;
-    if (touchDelayComp(lastT9)){
+    if (touchIntervalComp(lastT9)){
       //Serial.println("turn clkwise");
       turnAntiClkwise();
       lastT9 = millis();

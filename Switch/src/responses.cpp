@@ -165,7 +165,7 @@ void responses_status (AsyncWebServerRequest *request){
   Serial.println("\nGet:\t\tStatus");
   preferences.begin("switchSetting");
   String json = "[{";
-  json += "\"status\":"+((preferences.getBool("switchIsOn",false))?String("true"):String("false")); // NEED TO BE CHANGE!!!!!!!!!!!!!!!!!!!!!!
+  json += "\"status\":"+(preferences.getBool("switchIsOn",false)?String("true"):String("false")); // NEED TO BE CHANGE!!!!!!!!!!!!!!!!!!!!!!
   json += "}]";
   preferences.end();
 

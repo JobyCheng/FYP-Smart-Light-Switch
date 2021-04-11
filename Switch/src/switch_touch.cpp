@@ -9,11 +9,10 @@ volatile unsigned long lastT8 = 0;
 volatile unsigned long lastT9 = 0;
 
 const int threshold = 20;
+const long minInterval = 350; 
 
-const long touchDelay = 350;
-
-bool touchDelayComp(unsigned long lastTouch){
-    if ((millis() - lastTouch) < touchDelay) return false;
+bool touchIntervalComp(unsigned long lastTouch){
+    if ((millis() - lastTouch) < minInterval) return false;
     return true;
 }
 

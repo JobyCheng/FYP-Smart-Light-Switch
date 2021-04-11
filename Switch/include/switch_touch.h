@@ -7,12 +7,12 @@ extern const int threshold;
 extern bool triggeredT8;
 extern bool triggeredT9;
 
-extern const long touchDelay; //ms
+extern const long minInterval; //ms
 
 extern volatile unsigned long lastT8;
 extern volatile unsigned long lastT9;
 
-extern bool touchDelayComp(unsigned long);
+extern bool touchIntervalComp(unsigned long);
 
 void IRAM_ATTR T8wasActivated();
 void IRAM_ATTR T9wasActivated();
